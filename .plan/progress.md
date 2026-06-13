@@ -2,7 +2,7 @@
 
 ## Current Status
 
-**Phase:** Pre-implementation — planning complete, Phase 1 design not yet started  
+**Phase:** Phase 1 complete — ready to design Phase 2  
 **Last updated:** 2026-06-13
 
 ## What's Done
@@ -16,14 +16,28 @@
 
 ## What's Next
 
-- [ ] Write `.plan/phase-1-design.md` — get user approval before any code
-- [ ] Implement Phase 1 components one at a time with tests
+- [x] User approved `.plan/phase-1-design.md` on 2026-06-13
+- [x] Component 1: Config & settings — 20 tests green, committed
+- [x] Component 2: Prompt manager — 6 tests green
+- [x] Component 3: LLM client — 12 tests green
+- [x] Component 4: MCP client + registry — 9 tests green
+- [x] Component 5: Agent state + LangGraph — 14 tests green
+- [x] Component 6: Guardrails — 16 tests green
+- [x] Component 7: Langfuse tracer — 6 tests green
+- [x] Component 8: FastAPI routes — 7 integration tests green
+- [x] Component 9: Dockerfile + Docker Compose
+
+**Phase 1 complete — 90/90 tests passing**
+
+## What's Next
+
+- [ ] Write `.plan/phase-2-design.md` — get user approval before coding Phase 2
 
 ## Phase Completion Status
 
 | Phase | Status |
 |---|---|
-| Phase 1 — Foundation | Not started |
+| Phase 1 — Foundation | ✅ Complete — 90 tests green |
 | Phase 2 — Reliability | Not started |
 | Phase 3 — Memory | Not started |
 | Phase 4 — Evals & Quality | Not started |

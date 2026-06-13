@@ -13,20 +13,22 @@ services:
   langfuse:
     image: langfuse/langfuse:2
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       langfuse-db:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
       NEXTAUTH_SECRET: dev-secret-change-in-production
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3001
+      SALT: dev-salt-change-in-production
       TELEMETRY_ENABLED: "false"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/public/health"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 20s
 
   langfuse-db:
     image: postgres:16-alpine
@@ -49,10 +51,11 @@ services:
     volumes:
       - qdrant-data:/qdrant/storage
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/6333"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
 
 volumes:
   langfuse-db:

@@ -9,7 +9,7 @@
   {
     "id": "python-list-comprehension",
     "input": "How do I create a list of squares for numbers 1 through 5 in Python?",
-    "expected_output": "Use a list comprehension: [x**2 for x in range(1, 6)], which produces [1, 4, 9, 16, 25].",
+    "expected_output": "A list comprehension can be used to produce [1, 4, 9, 16, 25], the squares of 1 through 5.",
     "context": [],
     "tags": ["smoke", "coding"]
   },

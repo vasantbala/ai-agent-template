@@ -24,7 +24,7 @@ services:
       SALT: dev-salt-change-in-production
       TELEMETRY_ENABLED: "false"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/public/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://' + require('os').hostname() + ':3000/api/public/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 10

@@ -147,3 +147,39 @@ class TestMemoryStore:
         assert call_filter is not None
         keys = [c.key for c in call_filter.must]
         assert "tenant_id" in keys
+
+    async def test_store_includes_user_id_in_payload(self):
+        store, _ = self.make_store()
+        mem = Memory(text="hello", tenant_id="t1", session_id="s1", user_id="user-42")
+
+        await store.store(mem)
+
+        point = store._client.upsert.call_args.kwargs["points"][0]
+        assert point.payload["user_id"] == "user-42"
+
+    async def test_user_scope_filter_includes_user_id(self):
+        store, _ = self.make_store()
+        store._client.search.return_value = []
+
+        await store.retrieve("query", "acme", "user", user_id="user-42", top_k=5)
+
+        call_filter = store._client.search.call_args.kwargs["query_filter"]
+        keys = [c.key for c in call_filter.must]
+        assert "user_id" in keys
+        user_condition = next(c for c in call_filter.must if c.key == "user_id")
+        assert user_condition.match.value == "user-42"
+
+    async def test_different_users_get_different_filters(self):
+        store, _ = self.make_store()
+        store._client.search.return_value = []
+
+        await store.retrieve("q", "acme", "user", user_id="alice", top_k=5)
+        await store.retrieve("q", "acme", "user", user_id="bob", top_k=5)
+
+        calls = store._client.search.await_args_list
+        def get_user_id(call):
+            f = call.kwargs["query_filter"]
+            return next(c.match.value for c in f.must if c.key == "user_id")
+
+        assert get_user_id(calls[0]) == "alice"
+        assert get_user_id(calls[1]) == "bob"

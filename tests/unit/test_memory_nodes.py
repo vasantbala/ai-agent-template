@@ -116,3 +116,36 @@ class TestRetrieveMemories:
         content = result["messages"][0].content
         assert "- memory one" in content
         assert "- memory two" in content
+
+    async def test_passes_user_id_from_state(self):
+        state = make_state(user_id="user-42", messages=[HumanMessage(content="hello")])
+        store = make_store([])
+        config = make_config(scope="user")
+
+        await retrieve_memories(state, store, config)
+
+        assert store.retrieve.call_args.kwargs["user_id"] == "user-42"
+
+    async def test_passes_none_user_id_when_not_set(self):
+        state = make_state(user_id=None, messages=[HumanMessage(content="hello")])
+        store = make_store([])
+        config = make_config(scope="user")
+
+        await retrieve_memories(state, store, config)
+
+        assert store.retrieve.call_args.kwargs["user_id"] is None
+
+    async def test_user_scope_with_user_id_isolates_per_user(self):
+        # Two calls with different user_ids should pass different user_ids to store
+        store = make_store([])
+        config = make_config(scope="user")
+
+        state_a = make_state(user_id="alice", messages=[HumanMessage(content="hello")])
+        state_b = make_state(user_id="bob", messages=[HumanMessage(content="hello")])
+
+        await retrieve_memories(state_a, store, config)
+        await retrieve_memories(state_b, store, config)
+
+        calls = store.retrieve.await_args_list
+        assert calls[0].kwargs["user_id"] == "alice"
+        assert calls[1].kwargs["user_id"] == "bob"

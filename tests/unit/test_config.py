@@ -2,7 +2,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from config.settings import Settings, MCPServerConfig, _reset_settings
+from config.settings import Settings, MCPServerConfig, ReliabilityConfig, _reset_settings
 
 
 # Minimal valid env vars required by Settings
@@ -37,6 +37,10 @@ _OPTIONAL_ENV = [
     "LANGFUSE__HOST",
     "AGENT__NAME", "AGENT__VERSION", "AGENT__PROMPT_VERSION", "AGENT__MAX_ITERATIONS",
     "ENVIRONMENT", "MCP_SERVERS",
+    "RELIABILITY__MAX_TOKENS_PER_RUN", "RELIABILITY__MCP_RETRY_ATTEMPTS",
+    "RELIABILITY__MCP_RETRY_BASE_DELAY", "RELIABILITY__CIRCUIT_BREAKER_FAILURE_THRESHOLD",
+    "RELIABILITY__CIRCUIT_BREAKER_RESET_TIMEOUT", "RELIABILITY__CONTEXT_WINDOW_THRESHOLD",
+    "RELIABILITY__HITL_ENABLED",
 ]
 
 
@@ -168,3 +172,53 @@ class TestMCPServerConfig:
         servers = [{"name": "fs", "transport": "stdio", "command": "npx", "env": {"HOME": "/tmp"}}]
         s = make_settings(monkeypatch, {"MCP_SERVERS": json.dumps(servers)})
         assert s.mcp_servers[0].env == {"HOME": "/tmp"}
+
+
+class TestReliabilityConfig:
+    def test_reliability_defaults(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        r = s.reliability
+        assert r.max_tokens_per_run == 50_000
+        assert r.mcp_retry_attempts == 3
+        assert r.mcp_retry_base_delay == 1.0
+        assert r.circuit_breaker_failure_threshold == 5
+        assert r.circuit_breaker_reset_timeout == 60.0
+        assert r.context_window_threshold == 6_000
+        assert r.hitl_enabled is False
+
+    def test_reliability_overrideable_via_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {
+            "RELIABILITY__MAX_TOKENS_PER_RUN": "100000",
+            "RELIABILITY__MCP_RETRY_ATTEMPTS": "5",
+            "RELIABILITY__HITL_ENABLED": "true",
+        })
+        assert s.reliability.max_tokens_per_run == 100_000
+        assert s.reliability.mcp_retry_attempts == 5
+        assert s.reliability.hitl_enabled is True
+
+    def test_reliability_circuit_breaker_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {
+            "RELIABILITY__CIRCUIT_BREAKER_FAILURE_THRESHOLD": "10",
+            "RELIABILITY__CIRCUIT_BREAKER_RESET_TIMEOUT": "120.0",
+        })
+        assert s.reliability.circuit_breaker_failure_threshold == 10
+        assert s.reliability.circuit_breaker_reset_timeout == 120.0
+
+    def test_reliability_context_window_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"RELIABILITY__CONTEXT_WINDOW_THRESHOLD": "8000"})
+        assert s.reliability.context_window_threshold == 8_000
+
+    def test_reliability_config_standalone(self):
+        r = ReliabilityConfig()
+        assert r.max_tokens_per_run == 50_000
+        assert r.hitl_enabled is False
+
+    def test_reliability_config_custom_values(self):
+        r = ReliabilityConfig(
+            max_tokens_per_run=10_000,
+            mcp_retry_attempts=1,
+            hitl_enabled=True,
+        )
+        assert r.max_tokens_per_run == 10_000
+        assert r.mcp_retry_attempts == 1
+        assert r.hitl_enabled is True

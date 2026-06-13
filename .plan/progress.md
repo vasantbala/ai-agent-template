@@ -31,14 +31,24 @@
 
 ## What's Next
 
-- [ ] Write `.plan/phase-2-design.md` — get user approval before coding Phase 2
+- [x] User approved `.plan/phase-2-design.md` on 2026-06-13
+- [x] Component 1: ReliabilityConfig — 6 tests green
+- [x] Component 2: Retry (exponential backoff) — 8 tests green
+- [x] Component 3: Circuit breaker — 9 tests green
+- [x] Component 4: Token budget — 9 tests green
+- [x] Component 5: Context manager — 9 tests green
+- [x] Component 6: HITL node — 6 tests green
+- [x] Component 7: Checkpointing (AsyncSqliteSaver) — 3 new tests green
+- [x] Component 8: Wired retry + circuit breaker into MCPRegistry
+
+**Phase 2 complete — 139 tests passing (132 unit + 7 integration)**
 
 ## Phase Completion Status
 
 | Phase | Status |
 |---|---|
 | Phase 1 — Foundation | ✅ Complete — 90 tests green |
-| Phase 2 — Reliability | Not started |
+| Phase 2 — Reliability | ✅ Complete — 139 tests green |
 | Phase 3 — Memory | Not started |
 | Phase 4 — Evals & Quality | Not started |
 | Phase 5 — Multi-agent | Not started |

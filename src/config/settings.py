@@ -45,6 +45,16 @@ class AgentConfig(BaseModel):
     max_iterations: int = 10
 
 
+class ReliabilityConfig(BaseModel):
+    max_tokens_per_run: int = 50_000
+    mcp_retry_attempts: int = 3
+    mcp_retry_base_delay: float = 1.0
+    circuit_breaker_failure_threshold: int = 5
+    circuit_breaker_reset_timeout: float = 60.0
+    context_window_threshold: int = 6_000
+    hitl_enabled: bool = False
+
+
 class Settings(BaseSettings):
     tenant_id: str
     environment: Literal["development", "production"] = "development"
@@ -52,6 +62,7 @@ class Settings(BaseSettings):
     langfuse: LangfuseSettings
     agent: AgentConfig = AgentConfig()
     mcp_servers: list[MCPServerConfig] = []
+    reliability: ReliabilityConfig = ReliabilityConfig()
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",

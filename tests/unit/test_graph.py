@@ -163,3 +163,52 @@ class TestBuildGraph:
 
         graph = build_graph(llm, registry, prompts, config)
         assert graph is not None
+
+    def test_graph_compiles_with_checkpointer(self):
+        from langgraph.checkpoint.memory import InMemorySaver
+        llm = MagicMock(spec=LLMClient)
+        registry = MagicMock(spec=MCPRegistry)
+        prompts = MagicMock(spec=PromptManager)
+        config = make_agent_config()
+
+        graph = build_graph(llm, registry, prompts, config, checkpointer=InMemorySaver())
+        assert graph is not None
+
+    async def test_run_agent_uses_session_id_as_thread_id(self):
+        from agent.graph import run_agent
+
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {
+            "tenant_id": "t1",
+            "session_id": "sess-42",
+            "messages": [],
+            "tasks": [],
+            "current_task_index": 0,
+            "iteration": 1,
+            "error": None,
+        }
+
+        await run_agent(mock_graph, "t1", "sess-42", "hello", "sys prompt")
+
+        call_config = mock_graph.ainvoke.call_args[1]["config"]
+        assert call_config["configurable"]["thread_id"] == "sess-42"
+
+    async def test_run_agent_includes_callbacks_in_config(self):
+        from agent.graph import run_agent
+
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {
+            "tenant_id": "t1",
+            "session_id": "s1",
+            "messages": [],
+            "tasks": [],
+            "current_task_index": 0,
+            "iteration": 1,
+            "error": None,
+        }
+        cb = MagicMock()
+
+        await run_agent(mock_graph, "t1", "s1", "hello", "sys", callbacks=[cb])
+
+        call_config = mock_graph.ainvoke.call_args[1]["config"]
+        assert cb in call_config["callbacks"]

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 from typing import Any, Literal
 
 from langchain_core.messages import SystemMessage
@@ -22,7 +21,6 @@ def _should_execute(state: AgentState) -> Literal["execute", "end"]:
     in_progress = [t for t in state.tasks if t.status == "in_progress"]
     if pending or (state.current_task_index < len(state.tasks) and in_progress):
         return "execute"
-    # Check if there are tasks left by index
     if state.current_task_index < len(state.tasks):
         return "execute"
     return "end"
@@ -33,6 +31,7 @@ def build_graph(
     registry: MCPRegistry,
     prompts: PromptManager,
     agent_config: AgentConfig,
+    checkpointer: Any = None,
 ) -> Any:
     async def _reason(state: AgentState) -> dict[str, Any]:
         tools = await registry.get_all_tools()
@@ -49,7 +48,7 @@ def build_graph(
     builder.add_conditional_edges("reason", _should_execute, {"execute": "execute", "end": END})
     builder.add_edge("execute", "reason")
 
-    return builder.compile()
+    return builder.compile(checkpointer=checkpointer)
 
 
 async def run_agent(
@@ -71,9 +70,9 @@ async def run_agent(
         ],
     )
 
-    config: dict[str, Any] = {}
+    config: dict[str, Any] = {"configurable": {"thread_id": session_id}}
     if callbacks:
         config["callbacks"] = callbacks
 
-    result = await graph.ainvoke(initial_state, config=config or None)
+    result = await graph.ainvoke(initial_state, config=config)
     return AgentState(**result)

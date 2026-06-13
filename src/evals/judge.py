@@ -1,8 +1,42 @@
 from __future__ import annotations
 
+import json
+import re
+
 from deepeval.models.base_model import DeepEvalBaseLLM
 
 from config.settings import LLMSettings
+
+
+def _extract_json(text: str) -> str:
+    """Return the last valid JSON object found in text.
+
+    Strips markdown fences first, then scans backwards for a matching
+    { ... } pair. DeepEval's trimAndLoadJson uses the first { and last }
+    which breaks when the model echoes JSON from the evaluated content in
+    its reasoning — this finds the last self-contained JSON object instead.
+    """
+    text = re.sub(r"```(?:json)?\s*|\s*```", "", text).strip()
+    end = len(text)
+    while end > 0:
+        last_close = text.rfind("}", 0, end)
+        if last_close == -1:
+            break
+        depth = 0
+        for i in range(last_close, -1, -1):
+            if text[i] == "}":
+                depth += 1
+            elif text[i] == "{":
+                depth -= 1
+                if depth == 0:
+                    candidate = text[i : last_close + 1]
+                    try:
+                        json.loads(candidate)
+                        return candidate
+                    except json.JSONDecodeError:
+                        break
+        end = last_close
+    return text
 
 
 def _model_string(settings: LLMSettings) -> str:
@@ -61,7 +95,7 @@ class LiteLLMJudge(DeepEvalBaseLLM):
             ],
             **self._call_kwargs(),
         )
-        return response.choices[0].message.content or ""
+        return _extract_json(response.choices[0].message.content or "")
 
     async def a_generate(self, prompt: str, **kwargs) -> str:
         import litellm
@@ -73,4 +107,4 @@ class LiteLLMJudge(DeepEvalBaseLLM):
             ],
             **self._call_kwargs(),
         )
-        return response.choices[0].message.content or ""
+        return _extract_json(response.choices[0].message.content or "")

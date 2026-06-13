@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import time
 from typing import Awaitable, Callable
 
 from pydantic import BaseModel
 
-from config.settings import EvalConfig
+from config.settings import EvalConfig, LLMSettings
 from evals.golden import GoldenCase, GoldenDataset
 from evals.metrics import make_metrics
 
@@ -22,8 +21,16 @@ class EvalResult(BaseModel):
 
 
 class EvalRunner:
-    def __init__(self, config: EvalConfig) -> None:
+    def __init__(self, config: EvalConfig, llm_settings: LLMSettings | None = None) -> None:
         self._config = config
+        self._llm_settings = llm_settings
+
+    def _judge_model(self):
+        """Return a LiteLLMJudge if llm_settings are provided, else the config model name string."""
+        if self._llm_settings is not None:
+            from evals.judge import LiteLLMJudge
+            return LiteLLMJudge(self._llm_settings)
+        return self._config.model
 
     async def run_case(
         self,
@@ -44,7 +51,7 @@ class EvalRunner:
         metrics = make_metrics(
             names=self._config.metrics,
             threshold=self._config.threshold,
-            model=self._config.model,
+            model=self._judge_model(),
         )
 
         scores: dict[str, float] = {}

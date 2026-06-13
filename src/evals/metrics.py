@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+from typing import Any
 
-def make_metrics(names: list[str], threshold: float, model: str) -> list:
-    """Return DeepEval metric instances for the requested names."""
+
+def make_metrics(
+    names: list[str],
+    threshold: float,
+    model: str | Any,
+) -> list:
+    """Return DeepEval metric instances for the requested names.
+
+    `model` may be a model-name string (uses DeepEval's default OpenAI path)
+    or a DeepEvalBaseLLM instance (e.g. LiteLLMJudge) for custom providers.
+    """
     from deepeval.metrics import GEval, FaithfulnessMetric, AnswerRelevancyMetric
     from deepeval.test_case import SingleTurnParams
 

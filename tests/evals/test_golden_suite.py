@@ -59,7 +59,7 @@ async def agent_graph(settings):
 @pytest.fixture(scope="module")
 def eval_runner(settings):
     from evals.runner import EvalRunner
-    return EvalRunner(settings.eval)
+    return EvalRunner(settings.eval, llm_settings=settings.llm)
 
 
 @pytest.fixture(scope="module")

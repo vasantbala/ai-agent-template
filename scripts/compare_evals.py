@@ -53,7 +53,7 @@ async def run_version(version: str, settings, cases) -> dict[str, dict[str, floa
         checkpointer=checkpointer,
         reliability=settings.reliability,
     )
-    runner = EvalRunner(settings.eval)
+    runner = EvalRunner(settings.eval, llm_settings=settings.llm)
 
     results: dict[str, dict[str, float]] = {}
     for case in cases:

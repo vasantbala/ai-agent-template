@@ -5,6 +5,18 @@ from deepeval.models.base_model import DeepEvalBaseLLM
 from config.settings import LLMSettings
 
 
+def _model_string(settings: LLMSettings) -> str:
+    provider = settings.provider
+    model = settings.model
+    if provider == "openai":
+        return model
+    if provider == "anthropic":
+        return f"anthropic/{model}"
+    if provider == "openrouter":
+        return f"openrouter/{model}"
+    return model
+
+
 class LiteLLMJudge(DeepEvalBaseLLM):
     """DeepEval-compatible judge model backed by LiteLLM.
 
@@ -24,30 +36,31 @@ class LiteLLMJudge(DeepEvalBaseLLM):
     def get_model_name(self) -> str:
         return self._settings.model
 
+    def _call_kwargs(self) -> dict:
+        kwargs = {
+            "model": _model_string(self._settings),
+            "api_key": self._settings.api_key,
+            "max_tokens": 1024,
+            "temperature": 0.0,
+        }
+        if self._settings.base_url:
+            kwargs["base_url"] = self._settings.base_url
+        return kwargs
+
     def generate(self, prompt: str, **kwargs) -> str:
         import litellm
 
-        s = self._settings
         response = litellm.completion(
-            model=s.model,
             messages=[{"role": "user", "content": prompt}],
-            api_key=s.api_key,
-            base_url=s.base_url,
-            max_tokens=1024,
-            temperature=0.0,
+            **self._call_kwargs(),
         )
         return response.choices[0].message.content or ""
 
     async def a_generate(self, prompt: str, **kwargs) -> str:
         import litellm
 
-        s = self._settings
         response = await litellm.acompletion(
-            model=s.model,
             messages=[{"role": "user", "content": prompt}],
-            api_key=s.api_key,
-            base_url=s.base_url,
-            max_tokens=1024,
-            temperature=0.0,
+            **self._call_kwargs(),
         )
         return response.choices[0].message.content or ""

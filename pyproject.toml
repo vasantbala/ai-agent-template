@@ -29,6 +29,7 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "functional: real LLM call, requires valid .env credentials",
+    "eval: golden dataset evaluation suite, requires live LLM and .env credentials",
 ]
 
 [build-system]

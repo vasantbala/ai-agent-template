@@ -29,5 +29,20 @@ class AgentTracer:
         )
         return CallbackHandler(trace_context=tc)
 
+    def log_score(
+        self,
+        trace_id: str,
+        name: str,
+        value: float,
+        comment: str | None = None,
+    ) -> None:
+        """Write an eval score back to Langfuse so it appears alongside the trace."""
+        get_client().create_score(
+            trace_id=trace_id,
+            name=name,
+            value=value,
+            comment=comment,
+        )
+
     def flush(self) -> None:
         get_client().flush()

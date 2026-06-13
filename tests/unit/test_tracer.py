@@ -81,3 +81,38 @@ class TestAgentTracer:
 
             mock_get_client.assert_called_once()
             mock_client.flush.assert_called_once()
+
+    def test_log_score_calls_create_score(self):
+        with patch("observability.tracer.get_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_get_client.return_value = mock_client
+
+            tracer = AgentTracer(make_settings(), "tenant-1")
+            tracer.log_score(
+                trace_id="trace-abc",
+                name="correctness",
+                value=0.92,
+                comment="golden_case:capital-france",
+            )
+
+            mock_client.create_score.assert_called_once_with(
+                trace_id="trace-abc",
+                name="correctness",
+                value=0.92,
+                comment="golden_case:capital-france",
+            )
+
+    def test_log_score_without_comment(self):
+        with patch("observability.tracer.get_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_get_client.return_value = mock_client
+
+            tracer = AgentTracer(make_settings(), "tenant-1")
+            tracer.log_score(trace_id="t1", name="relevancy", value=0.8)
+
+            mock_client.create_score.assert_called_once_with(
+                trace_id="t1",
+                name="relevancy",
+                value=0.8,
+                comment=None,
+            )

@@ -55,6 +55,21 @@ class ReliabilityConfig(BaseModel):
     hitl_enabled: bool = False
 
 
+class EmbeddingSettings(BaseModel):
+    model: str = "text-embedding-3-small"
+    api_key: str | None = None  # falls back to LLM api_key when None
+    dimensions: int = 1536
+
+
+class MemoryConfig(BaseModel):
+    enabled: bool = False
+    scope: Literal["session", "user", "tenant", "global"] = "user"
+    top_k: int = 5
+    collection_name: str = "agent_memories"
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: str | None = None
+
+
 class Settings(BaseSettings):
     tenant_id: str
     environment: Literal["development", "production"] = "development"
@@ -63,6 +78,8 @@ class Settings(BaseSettings):
     agent: AgentConfig = AgentConfig()
     mcp_servers: list[MCPServerConfig] = []
     reliability: ReliabilityConfig = ReliabilityConfig()
+    embedding: EmbeddingSettings = EmbeddingSettings()
+    memory: MemoryConfig = MemoryConfig()
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from langchain_core.messages import SystemMessage
 from langgraph.graph import END, START, StateGraph
@@ -10,10 +10,13 @@ from agent.nodes.hitl import human_approval
 from agent.nodes.reason import reason
 from agent.state import AgentState
 from config.prompts import PromptManager
-from config.settings import AgentConfig, ReliabilityConfig
+from config.settings import AgentConfig, MemoryConfig, ReliabilityConfig
 from llm.client import LLMClient
 from reliability.context import ContextManager
 from tools.registry import MCPRegistry
+
+if TYPE_CHECKING:
+    from memory.store import MemoryStore
 
 
 def _should_execute(state: AgentState) -> Literal["execute", "hitl", "end"]:
@@ -48,9 +51,18 @@ def build_graph(
     agent_config: AgentConfig,
     checkpointer: Any = None,
     reliability: ReliabilityConfig | None = None,
+    memory_store: MemoryStore | None = None,
+    memory_config: MemoryConfig | None = None,
 ) -> Any:
     rel = reliability or ReliabilityConfig()
+    mem_cfg = memory_config or MemoryConfig()
     context_mgr = ContextManager(llm, threshold_tokens=rel.context_window_threshold)
+
+    async def _retrieve_memories(state: AgentState) -> dict[str, Any]:
+        if memory_store is None:
+            return {}
+        from memory.nodes import retrieve_memories
+        return await retrieve_memories(state, memory_store, mem_cfg)
 
     async def _reason(state: AgentState) -> dict[str, Any]:
         tools = await registry.get_all_tools()
@@ -67,12 +79,14 @@ def build_graph(
         return await execute(state, registry)
 
     builder = StateGraph(AgentState)
+    builder.add_node("retrieve_memories", _retrieve_memories)
     builder.add_node("reason", _reason)
     builder.add_node("execute", _execute)
 
     if rel.hitl_enabled:
         builder.add_node("hitl", human_approval)
-        builder.add_edge(START, "reason")
+        builder.add_edge(START, "retrieve_memories")
+        builder.add_edge("retrieve_memories", "reason")
         builder.add_conditional_edges(
             "reason",
             _should_execute_with_hitl,
@@ -85,7 +99,8 @@ def build_graph(
         )
         builder.add_edge("execute", "reason")
     else:
-        builder.add_edge(START, "reason")
+        builder.add_edge(START, "retrieve_memories")
+        builder.add_edge("retrieve_memories", "reason")
         builder.add_conditional_edges(
             "reason",
             _should_execute,

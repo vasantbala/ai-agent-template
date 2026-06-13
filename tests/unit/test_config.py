@@ -2,7 +2,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from config.settings import Settings, MCPServerConfig, ReliabilityConfig, _reset_settings
+from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, _reset_settings
 
 
 # Minimal valid env vars required by Settings
@@ -41,6 +41,9 @@ _OPTIONAL_ENV = [
     "RELIABILITY__MCP_RETRY_BASE_DELAY", "RELIABILITY__CIRCUIT_BREAKER_FAILURE_THRESHOLD",
     "RELIABILITY__CIRCUIT_BREAKER_RESET_TIMEOUT", "RELIABILITY__CONTEXT_WINDOW_THRESHOLD",
     "RELIABILITY__HITL_ENABLED",
+    "EMBEDDING__MODEL", "EMBEDDING__API_KEY", "EMBEDDING__DIMENSIONS",
+    "MEMORY__ENABLED", "MEMORY__SCOPE", "MEMORY__TOP_K", "MEMORY__COLLECTION_NAME",
+    "MEMORY__QDRANT_URL", "MEMORY__QDRANT_API_KEY",
 ]
 
 
@@ -222,3 +225,64 @@ class TestReliabilityConfig:
         assert r.max_tokens_per_run == 10_000
         assert r.mcp_retry_attempts == 1
         assert r.hitl_enabled is True
+
+
+class TestEmbeddingSettings:
+    def test_embedding_defaults(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        e = s.embedding
+        assert e.model == "text-embedding-3-small"
+        assert e.api_key is None
+        assert e.dimensions == 1536
+
+    def test_embedding_model_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"EMBEDDING__MODEL": "text-embedding-ada-002"})
+        assert s.embedding.model == "text-embedding-ada-002"
+
+    def test_embedding_api_key_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"EMBEDDING__API_KEY": "sk-embed-key"})
+        assert s.embedding.api_key == "sk-embed-key"
+
+    def test_embedding_dimensions_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"EMBEDDING__DIMENSIONS": "768"})
+        assert s.embedding.dimensions == 768
+
+    def test_embedding_standalone(self):
+        e = EmbeddingSettings(model="custom-model", dimensions=512)
+        assert e.model == "custom-model"
+        assert e.dimensions == 512
+
+
+class TestMemoryConfig:
+    def test_memory_defaults(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        m = s.memory
+        assert m.enabled is False
+        assert m.scope == "user"
+        assert m.top_k == 5
+        assert m.collection_name == "agent_memories"
+        assert m.qdrant_url == "http://localhost:6333"
+        assert m.qdrant_api_key is None
+
+    def test_memory_enabled_via_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"MEMORY__ENABLED": "true"})
+        assert s.memory.enabled is True
+
+    def test_memory_scope_overrideable(self, monkeypatch):
+        for scope in ("session", "user", "tenant", "global"):
+            s = make_settings(monkeypatch, {"MEMORY__SCOPE": scope})
+            assert s.memory.scope == scope
+
+    def test_memory_top_k_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"MEMORY__TOP_K": "10"})
+        assert s.memory.top_k == 10
+
+    def test_memory_qdrant_url_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"MEMORY__QDRANT_URL": "http://qdrant:6333"})
+        assert s.memory.qdrant_url == "http://qdrant:6333"
+
+    def test_memory_config_standalone(self):
+        m = MemoryConfig(enabled=True, scope="tenant", top_k=3)
+        assert m.enabled is True
+        assert m.scope == "tenant"
+        assert m.top_k == 3

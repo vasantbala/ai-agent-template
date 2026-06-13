@@ -4,10 +4,20 @@ from langchain_core.messages import AIMessage
 from fastapi import APIRouter, HTTPException, Request
 
 from agent.graph import run_agent
+from agent.state import AgentState
 from api.schemas import AgentRequest, AgentResponse, ToolCall
 from guardrails.input import GuardrailViolation
+from memory.store import Memory
 
 router = APIRouter()
+
+
+def _extract_run_summary(state: AgentState) -> str:
+    ai_messages = [m for m in state.messages if isinstance(m, AIMessage)]
+    if not ai_messages:
+        return ""
+    last = ai_messages[-1].content
+    return last[:500] if isinstance(last, str) else ""
 
 
 @router.post("/v1/agent/run", response_model=AgentResponse)
@@ -34,6 +44,21 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
     except Exception as exc:
         app_state.tracer.flush()
         raise HTTPException(status_code=500, detail=str(exc))
+
+    # Store memory after the run if memory is enabled
+    memory_store = getattr(app_state, "memory_store", None)
+    settings = app_state.settings
+    if memory_store is not None and settings.memory.enabled:
+        summary = _extract_run_summary(final_state)
+        if summary:
+            try:
+                await memory_store.store(Memory(
+                    text=summary,
+                    tenant_id=body.tenant_id,
+                    session_id=body.session_id,
+                ))
+            except Exception:
+                pass  # memory store failure must never break the response
 
     ai_messages = [m for m in final_state.messages if isinstance(m, AIMessage)]
     output = ai_messages[-1].content if ai_messages else ""

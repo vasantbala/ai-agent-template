@@ -14,6 +14,8 @@ from config.settings import get_settings
 from guardrails.input import InputGuardrail
 from guardrails.output import OutputGuardrail
 from llm.client import LLMClient
+from memory.embedding import EmbeddingClient
+from memory.store import MemoryStore
 from observability.tracer import AgentTracer
 from tools.registry import MCPRegistry
 
@@ -27,6 +29,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     prompts = PromptManager(settings.agent.prompt_version)
     tracer = AgentTracer(settings.langfuse, settings.tenant_id)
 
+    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key)
+    memory_store = MemoryStore(settings.memory, embedder)
+
+    if settings.memory.enabled:
+        await memory_store.ensure_collection(dimensions=settings.embedding.dimensions)
+
     await registry.connect_all()
 
     async with AsyncSqliteSaver.from_conn_string("checkpoints.db") as checkpointer:
@@ -34,6 +42,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             llm, registry, prompts, settings.agent,
             checkpointer=checkpointer,
             reliability=settings.reliability,
+            memory_store=memory_store if settings.memory.enabled else None,
+            memory_config=settings.memory,
         )
 
         app.state.settings = settings
@@ -42,6 +52,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.prompts = prompts
         app.state.tracer = tracer
         app.state.graph = graph
+        app.state.memory_store = memory_store if settings.memory.enabled else None
         app.state.input_guardrail = InputGuardrail()
         app.state.output_guardrail = OutputGuardrail()
 

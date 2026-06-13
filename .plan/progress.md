@@ -31,13 +31,15 @@
 
 ## What's Next (Phase 3)
 
-- [ ] User approves `.plan/phase-3-design.md`
-- [ ] Component 1: MemoryConfig + EmbeddingSettings in settings
-- [ ] Component 2: EmbeddingClient
-- [ ] Component 3: MemoryStore (Qdrant)
-- [ ] Component 4: retrieve_memories node
-- [ ] Component 5: Wire into graph + API route
-- [ ] Component 6: Docker Compose Qdrant
+- [x] User approved `.plan/phase-3-design.md` on 2026-06-13
+- [x] Component 1: MemoryConfig + EmbeddingSettings — 11 tests green
+- [x] Component 2: EmbeddingClient — 5 tests green
+- [x] Component 3: MemoryStore (Qdrant) — 14 tests green
+- [x] Component 4: retrieve_memories node — 8 tests green
+- [x] Component 5: Wire into graph + API route — 184 total tests green
+- [x] Component 6: Docker Compose Qdrant
+
+**Phase 3 complete — 184 tests passing (177 unit + 7 integration)**
 
 ---
 
@@ -66,7 +68,7 @@ Graph wiring fully complete:
 |---|---|
 | Phase 1 — Foundation | ✅ Complete — 90 tests green |
 | Phase 2 — Reliability | ✅ Complete — 139 tests green |
-| Phase 3 — Memory | Not started |
+| Phase 3 — Memory | ✅ Complete — 184 tests green |
 | Phase 4 — Evals & Quality | Not started |
 | Phase 5 — Multi-agent | Not started |
 | Phase 6 — Deployment & Triggers | Not started |

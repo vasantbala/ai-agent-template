@@ -6,7 +6,7 @@ from httpx import AsyncClient, ASGITransport
 
 from api.main import create_app
 from agent.state import AgentState, Task
-from config.settings import LangfuseSettings
+from config.settings import LangfuseSettings, MemoryConfig
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 
@@ -22,11 +22,16 @@ def make_mock_app_state():
     mock_prompts = MagicMock()
     mock_prompts.get_system_prompt.return_value = "You are a test agent."
 
+    mock_settings = MagicMock()
+    mock_settings.memory = MemoryConfig(enabled=False)
+
     return {
         "tracer": mock_tracer,
         "prompts": mock_prompts,
         "input_guardrail": InputGuardrail(),
         "output_guardrail": OutputGuardrail(),
+        "settings": mock_settings,
+        "memory_store": None,
     }
 
 

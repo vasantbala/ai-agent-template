@@ -1,0 +1,40 @@
+[
+  {
+    "id": "capital-france",
+    "input": "What is the capital of France?",
+    "expected_output": "The capital of France is Paris.",
+    "context": [],
+    "tags": ["smoke", "geography"]
+  },
+  {
+    "id": "python-list-comprehension",
+    "input": "How do I create a list of squares for numbers 1 through 5 in Python?",
+    "expected_output": "You can use a list comprehension: [x**2 for x in range(1, 6)] produces [1, 4, 9, 16, 25].",
+    "context": [],
+    "tags": ["smoke", "coding"]
+  },
+  {
+    "id": "summarise-with-context",
+    "input": "Summarise the key point from the provided context.",
+    "expected_output": "The agent should complete its tasks within the token budget and retry on transient failures.",
+    "context": [
+      "The agent template enforces a token budget per run to control costs.",
+      "Transient MCP tool call failures are retried with exponential backoff."
+    ],
+    "tags": ["faithfulness", "regression"]
+  },
+  {
+    "id": "json-format",
+    "input": "Return a JSON object with keys 'name' and 'age' for a person named Alice who is 30.",
+    "expected_output": "{\"name\": \"Alice\", \"age\": 30}",
+    "context": [],
+    "tags": ["smoke", "format"]
+  },
+  {
+    "id": "multi-step-math",
+    "input": "If a product costs $120 and there is a 15% discount followed by 8% tax, what is the final price?",
+    "expected_output": "The final price is $110.16. After the 15% discount the price is $102, then adding 8% tax gives $110.16.",
+    "context": [],
+    "tags": ["regression", "math"]
+  }
+]

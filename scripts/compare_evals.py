@@ -32,7 +32,7 @@ async def run_version(version: str, settings, cases) -> dict[str, dict[str, floa
     from langgraph.checkpoint.memory import InMemorySaver
     from llm.client import LLMClient
     from tools.registry import MCPRegistry
-    from prompts.manager import PromptManager
+    from config.prompts import PromptManager
     from agent.graph import build_graph, run_agent
     from langchain_core.messages import AIMessage
     from evals.runner import EvalRunner

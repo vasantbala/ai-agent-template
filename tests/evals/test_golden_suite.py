@@ -38,7 +38,7 @@ async def agent_graph(settings):
     from langgraph.checkpoint.memory import InMemorySaver
     from llm.client import LLMClient
     from tools.registry import MCPRegistry
-    from prompts.manager import PromptManager
+    from config.prompts import PromptManager
     from agent.graph import build_graph
 
     llm = LLMClient(settings.llm)

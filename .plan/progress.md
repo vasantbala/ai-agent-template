@@ -41,7 +41,12 @@
 - [x] Component 7: Checkpointing (AsyncSqliteSaver) — 3 new tests green
 - [x] Component 8: Wired retry + circuit breaker into MCPRegistry
 
-**Phase 2 complete — 139 tests passing (132 unit + 7 integration)**
+**Phase 2 complete — 146 tests passing (139 unit + 7 integration)**
+
+Graph wiring fully complete:
+- `reason` node calls `ContextManager.maybe_summarise()` before each LLM call
+- `reason` node accumulates `tokens_used` in state and returns error when `max_tokens_per_run` is exceeded
+- `build_graph` wires HITL node conditionally: `reason → hitl → execute` when `hitl_enabled=true`
 
 ## Phase Completion Status
 

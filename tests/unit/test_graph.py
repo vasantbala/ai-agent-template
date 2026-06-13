@@ -7,7 +7,7 @@ from agent.state import AgentState, Task
 from agent.nodes.reason import reason
 from agent.nodes.execute import execute
 from agent.graph import _should_execute, build_graph
-from config.settings import AgentConfig, LLMSettings
+from config.settings import AgentConfig, LLMSettings, ReliabilityConfig
 from llm.client import LLMClient
 from tools.registry import MCPRegistry
 from config.prompts import PromptManager
@@ -30,12 +30,21 @@ def make_state(**overrides) -> AgentState:
     return AgentState(**(defaults | overrides))
 
 
-def mock_llm_response(content: str = "Done", tool_calls: list | None = None) -> MagicMock:
+def mock_llm_response(
+    content: str = "Done",
+    tool_calls: list | None = None,
+    prompt_tokens: int = 100,
+    completion_tokens: int = 50,
+) -> MagicMock:
     choice = MagicMock()
     choice.message.content = content
     choice.message.tool_calls = tool_calls or []
+    usage = MagicMock()
+    usage.prompt_tokens = prompt_tokens
+    usage.completion_tokens = completion_tokens
     response = MagicMock()
     response.choices = [choice]
+    response.usage = usage
     return response
 
 
@@ -185,6 +194,7 @@ class TestBuildGraph:
             "tasks": [],
             "current_task_index": 0,
             "iteration": 1,
+            "tokens_used": 0,
             "error": None,
         }
 
@@ -204,6 +214,7 @@ class TestBuildGraph:
             "tasks": [],
             "current_task_index": 0,
             "iteration": 1,
+            "tokens_used": 0,
             "error": None,
         }
         cb = MagicMock()
@@ -212,3 +223,77 @@ class TestBuildGraph:
 
         call_config = mock_graph.ainvoke.call_args[1]["config"]
         assert cb in call_config["callbacks"]
+
+    def test_graph_compiles_with_hitl_enabled(self):
+        llm = MagicMock(spec=LLMClient)
+        registry = MagicMock(spec=MCPRegistry)
+        prompts = MagicMock(spec=PromptManager)
+        config = make_agent_config()
+        rel = ReliabilityConfig(hitl_enabled=True)
+
+        graph = build_graph(llm, registry, prompts, config, reliability=rel)
+        assert graph is not None
+
+    def test_graph_compiles_without_hitl(self):
+        llm = MagicMock(spec=LLMClient)
+        registry = MagicMock(spec=MCPRegistry)
+        prompts = MagicMock(spec=PromptManager)
+        config = make_agent_config()
+        rel = ReliabilityConfig(hitl_enabled=False)
+
+        graph = build_graph(llm, registry, prompts, config, reliability=rel)
+        assert graph is not None
+
+
+class TestReasonNodeWiring:
+    async def test_accumulates_token_usage(self):
+        llm = AsyncMock(spec=LLMClient)
+        llm.complete.return_value = mock_llm_response("Done", prompt_tokens=100, completion_tokens=50)
+        state = make_state(tokens_used=200)
+
+        result = await reason(state, llm, [], max_iterations=10)
+
+        assert result["tokens_used"] == 350  # 200 + 100 + 50
+
+    async def test_returns_error_when_budget_exceeded(self):
+        llm = AsyncMock(spec=LLMClient)
+        llm.complete.return_value = mock_llm_response("Done", prompt_tokens=100, completion_tokens=50)
+        state = make_state(tokens_used=0)
+
+        result = await reason(state, llm, [], max_iterations=10, max_tokens=100)
+
+        assert "error" in result
+        assert "Token budget exceeded" in result["error"]
+        assert result["tokens_used"] == 150
+
+    async def test_no_budget_limit_when_max_tokens_zero(self):
+        llm = AsyncMock(spec=LLMClient)
+        llm.complete.return_value = mock_llm_response("Done", prompt_tokens=1000, completion_tokens=1000)
+        state = make_state(tokens_used=0)
+
+        result = await reason(state, llm, [], max_iterations=10, max_tokens=0)
+
+        assert "error" not in result or result.get("error") is None
+        assert result["tokens_used"] == 2000
+
+    async def test_calls_context_manager_when_provided(self):
+        from unittest.mock import AsyncMock as AM
+        llm = AsyncMock(spec=LLMClient)
+        llm.complete.return_value = mock_llm_response("Done")
+
+        ctx_mgr = MagicMock()
+        ctx_mgr.maybe_summarise = AM(return_value=[HumanMessage(content="Hello")])
+
+        state = make_state()
+        await reason(state, llm, [], max_iterations=10, context_mgr=ctx_mgr)
+
+        ctx_mgr.maybe_summarise.assert_awaited_once_with(state.messages)
+
+    async def test_skips_context_manager_when_none(self):
+        llm = AsyncMock(spec=LLMClient)
+        llm.complete.return_value = mock_llm_response("Done")
+        state = make_state()
+
+        # Should not raise even without context_mgr
+        result = await reason(state, llm, [], max_iterations=10, context_mgr=None)
+        assert "error" not in result or result.get("error") is None

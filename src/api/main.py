@@ -30,7 +30,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await registry.connect_all()
 
     async with AsyncSqliteSaver.from_conn_string("checkpoints.db") as checkpointer:
-        graph = build_graph(llm, registry, prompts, settings.agent, checkpointer=checkpointer)
+        graph = build_graph(
+            llm, registry, prompts, settings.agent,
+            checkpointer=checkpointer,
+            reliability=settings.reliability,
+        )
 
         app.state.settings = settings
         app.state.llm = llm

@@ -24,4 +24,5 @@ class AgentState(BaseModel):
     tasks: list[Task] = []
     current_task_index: int = 0
     iteration: int = 0
+    tokens_used: int = 0
     error: str | None = None

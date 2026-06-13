@@ -29,7 +29,19 @@
 
 **Phase 1 complete — 90/90 tests passing**
 
-## What's Next
+## What's Next (Phase 3)
+
+- [ ] User approves `.plan/phase-3-design.md`
+- [ ] Component 1: MemoryConfig + EmbeddingSettings in settings
+- [ ] Component 2: EmbeddingClient
+- [ ] Component 3: MemoryStore (Qdrant)
+- [ ] Component 4: retrieve_memories node
+- [ ] Component 5: Wire into graph + API route
+- [ ] Component 6: Docker Compose Qdrant
+
+---
+
+## Phase 2 History
 
 - [x] User approved `.plan/phase-2-design.md` on 2026-06-13
 - [x] Component 1: ReliabilityConfig — 6 tests green
@@ -59,6 +71,10 @@ Graph wiring fully complete:
 | Phase 5 — Multi-agent | Not started |
 | Phase 6 — Deployment & Triggers | Not started |
 | Phase 7 — Auth & Security | Not started |
+
+## Deferred
+
+Manual Phase 2 verification (resume from checkpoint, HITL approval flow, budget exceeded demo) — deferred to after Phase 3. All automated tests pass.
 
 ## Blockers
 

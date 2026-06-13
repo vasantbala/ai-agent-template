@@ -69,7 +69,7 @@ Graph wiring fully complete:
 | Phase 1 — Foundation | ✅ Complete — 90 tests green |
 | Phase 2 — Reliability | ✅ Complete — 139 tests green |
 | Phase 3 — Memory | ✅ Complete — 184 tests green |
-| Phase 4 — Evals & Quality | Not started |
+| Phase 4 — Evals & Quality | Design written, awaiting approval |
 | Phase 5 — Multi-agent | Not started |
 | Phase 6 — Deployment & Triggers | Not started |
 | Phase 7 — Auth & Security | Not started |

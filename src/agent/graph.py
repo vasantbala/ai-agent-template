@@ -117,6 +117,7 @@ async def run_agent(
     session_id: str,
     user_input: str,
     system_prompt: str,
+    user_id: str | None = None,
     callbacks: list[Any] | None = None,
 ) -> AgentState:
     from langchain_core.messages import HumanMessage
@@ -124,6 +125,7 @@ async def run_agent(
     initial_state = AgentState(
         tenant_id=tenant_id,
         session_id=session_id,
+        user_id=user_id,
         messages=[
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_input),

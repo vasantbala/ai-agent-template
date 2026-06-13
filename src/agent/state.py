@@ -20,6 +20,7 @@ class Task(BaseModel):
 class AgentState(BaseModel):
     tenant_id: str
     session_id: str
+    user_id: str | None = None
     messages: Annotated[list[BaseMessage], add_messages] = []
     tasks: list[Task] = []
     current_task_index: int = 0

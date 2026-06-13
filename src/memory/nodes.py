@@ -29,6 +29,7 @@ async def retrieve_memories(
         tenant_id=state.tenant_id,
         scope=config.scope,
         session_id=state.session_id,
+        user_id=state.user_id,
         top_k=config.top_k,
     )
 

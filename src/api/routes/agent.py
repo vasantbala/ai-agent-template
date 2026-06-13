@@ -39,6 +39,7 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
             session_id=body.session_id,
             user_input=body.input,
             system_prompt=system_prompt,
+            user_id=body.user_id,
             callbacks=[handler],
         )
     except Exception as exc:
@@ -56,6 +57,7 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
                     text=summary,
                     tenant_id=body.tenant_id,
                     session_id=body.session_id,
+                    user_id=body.user_id,
                 ))
             except Exception:
                 pass  # memory store failure must never break the response

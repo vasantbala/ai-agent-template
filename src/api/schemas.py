@@ -11,6 +11,7 @@ from agent.state import Task
 class AgentRequest(BaseModel):
     tenant_id: str
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str | None = None
     input: str
     context: dict[str, Any] = {}
 

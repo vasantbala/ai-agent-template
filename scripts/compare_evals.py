@@ -42,13 +42,7 @@ async def run_version(version: str, settings, cases) -> dict[str, dict[str, floa
     agent_cfg = settings.agent.model_copy(update={"prompt_version": version})
 
     llm = LLMClient(settings.llm)
-    registry = MCPRegistry(
-        servers=settings.mcp_servers,
-        retry_attempts=settings.reliability.mcp_retry_attempts,
-        retry_base_delay=settings.reliability.mcp_retry_base_delay,
-        circuit_breaker_failure_threshold=settings.reliability.circuit_breaker_failure_threshold,
-        circuit_breaker_reset_timeout=settings.reliability.circuit_breaker_reset_timeout,
-    )
+    registry = MCPRegistry(settings.mcp_servers, reliability=settings.reliability)
     prompts = PromptManager(version)
     checkpointer = InMemorySaver()
     graph = build_graph(

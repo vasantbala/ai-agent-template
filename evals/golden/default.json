@@ -25,7 +25,7 @@
   },
   {
     "id": "json-format",
-    "input": "Return a JSON object with keys 'name' and 'age' for a person named Alice who is 30.",
+    "input": "Return a JSON object with keys 'name' and 'age' for a person named Alice who is 30. Output raw JSON only, no markdown or code fences.",
     "expected_output": "{\"name\": \"Alice\", \"age\": 30}",
     "context": [],
     "tags": ["smoke", "format"]

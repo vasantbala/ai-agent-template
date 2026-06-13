@@ -3,6 +3,7 @@ name = "ai-agent-template"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "langchain>=0.3",
     "langgraph>=0.2",
     "litellm>=1.40",
     "fastapi[standard]>=0.111",
@@ -23,6 +24,9 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "functional: real LLM call, requires valid .env credentials",
+]
 
 [build-system]
 requires = ["hatchling"]

@@ -58,17 +58,22 @@ async def run_agent(
     session_id: str,
     user_input: str,
     system_prompt: str,
+    callbacks: list[Any] | None = None,
 ) -> AgentState:
+    from langchain_core.messages import HumanMessage
+
     initial_state = AgentState(
         tenant_id=tenant_id,
         session_id=session_id,
         messages=[
             SystemMessage(content=system_prompt),
+            HumanMessage(content=user_input),
         ],
     )
-    # Add the human message via the messages update mechanism
-    from langchain_core.messages import HumanMessage
-    initial_state.messages.append(HumanMessage(content=user_input))
 
-    result = await graph.ainvoke(initial_state)
+    config: dict[str, Any] = {}
+    if callbacks:
+        config["callbacks"] = callbacks
+
+    result = await graph.ainvoke(initial_state, config=config or None)
     return AgentState(**result)

@@ -16,10 +16,8 @@ def make_mock_app_state():
     from guardrails.output import OutputGuardrail
 
     mock_tracer = MagicMock()
-    mock_trace = MagicMock()
-    mock_trace.id = "trace-123"
-    mock_tracer.start_trace.return_value = mock_trace
-    mock_tracer.end_trace.return_value = None
+    mock_tracer.callback_handler.return_value = MagicMock()
+    mock_tracer.flush.return_value = None
 
     mock_prompts = MagicMock()
     mock_prompts.get_system_prompt.return_value = "You are a test agent."

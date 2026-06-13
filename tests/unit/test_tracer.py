@@ -1,3 +1,4 @@
+import os
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -9,62 +10,74 @@ def make_settings() -> LangfuseSettings:
     return LangfuseSettings(
         public_key="pk-test",
         secret_key="sk-test",
-        host="http://localhost:3000",
+        host="https://us.cloud.langfuse.com",
     )
 
 
-@pytest.fixture
-def mock_langfuse():
-    with patch("observability.tracer.Langfuse") as mock_cls:
-        instance = MagicMock()
-        mock_cls.return_value = instance
-        yield instance
-
-
 class TestAgentTracer:
-    def test_initialises_langfuse_with_settings(self, mock_langfuse):
-        with patch("observability.tracer.Langfuse") as mock_cls:
+    def test_sets_langfuse_env_vars_on_init(self, monkeypatch):
+        monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+        monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
+        monkeypatch.delenv("LANGFUSE_HOST", raising=False)
+
+        AgentTracer(make_settings(), "tenant-1")
+
+        assert os.environ["LANGFUSE_PUBLIC_KEY"] == "pk-test"
+        assert os.environ["LANGFUSE_SECRET_KEY"] == "sk-test"
+        assert os.environ["LANGFUSE_HOST"] == "https://us.cloud.langfuse.com"
+
+    def test_callback_handler_uses_trace_context(self):
+        with patch("observability.tracer.CallbackHandler") as mock_cls, \
+             patch("observability.tracer.TraceContext") as mock_tc_cls:
+
+            mock_tc_cls.return_value = {"session_id": "sess-1", "user_id": "tenant-abc", "trace_name": "agent-run"}
             mock_cls.return_value = MagicMock()
-            settings = make_settings()
-            AgentTracer(settings, "tenant-1")
-            mock_cls.assert_called_once_with(
-                public_key="pk-test",
-                secret_key="sk-test",
-                host="http://localhost:3000",
+
+            tracer = AgentTracer(make_settings(), "tenant-abc")
+            handler = tracer.callback_handler("sess-1")
+
+            mock_tc_cls.assert_called_once_with(
+                session_id="sess-1",
+                user_id="tenant-abc",
+                trace_name="agent-run",
             )
+            mock_cls.assert_called_once_with(trace_context=mock_tc_cls.return_value)
+            assert handler is mock_cls.return_value
 
-    def test_start_trace_creates_trace_with_metadata(self, mock_langfuse):
-        tracer = AgentTracer(make_settings(), "tenant-abc")
-        tracer.start_trace("sess-1", "user input")
-        mock_langfuse.trace.assert_called_once_with(
-            name="agent-run",
-            session_id="sess-1",
-            input="user input",
-            metadata={"tenant_id": "tenant-abc"},
-        )
+    def test_callback_handler_uses_tenant_as_user_id(self):
+        with patch("observability.tracer.CallbackHandler") as mock_cls, \
+             patch("observability.tracer.TraceContext") as mock_tc_cls:
 
-    def test_span_calls_trace_span(self, mock_langfuse):
-        tracer = AgentTracer(make_settings(), "tenant-1")
-        trace = MagicMock()
-        tracer.span(trace, "reason", {"messages": []})
-        trace.span.assert_called_once_with(name="reason", input={"messages": []})
+            mock_tc_cls.return_value = {}
+            mock_cls.return_value = MagicMock()
 
-    def test_end_span_calls_span_end_on_success(self, mock_langfuse):
-        tracer = AgentTracer(make_settings(), "tenant-1")
-        span = MagicMock()
-        tracer.end_span(span, {"result": "ok"})
-        span.end.assert_called_once_with(output={"result": "ok"}, level="DEFAULT", status_message=None)
+            tracer = AgentTracer(make_settings(), "acme-corp")
+            tracer.callback_handler("sess-x")
 
-    def test_end_span_marks_error_level_on_failure(self, mock_langfuse):
-        tracer = AgentTracer(make_settings(), "tenant-1")
-        span = MagicMock()
-        tracer.end_span(span, {}, error="something failed")
-        span.end.assert_called_once_with(output={}, level="ERROR", status_message="something failed")
+            assert mock_tc_cls.call_args.kwargs["user_id"] == "acme-corp"
 
-    def test_end_trace_updates_and_flushes(self, mock_langfuse):
-        tracer = AgentTracer(make_settings(), "tenant-1")
-        trace = MagicMock()
-        usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
-        tracer.end_trace(trace, "final output", usage)
-        trace.update.assert_called_once_with(output="final output", usage=usage)
-        mock_langfuse.flush.assert_called_once()
+    def test_different_sessions_produce_different_trace_contexts(self):
+        with patch("observability.tracer.CallbackHandler") as mock_cls, \
+             patch("observability.tracer.TraceContext") as mock_tc_cls:
+
+            mock_tc_cls.side_effect = [{"session_id": "s1"}, {"session_id": "s2"}]
+            mock_cls.side_effect = [MagicMock(), MagicMock()]
+
+            tracer = AgentTracer(make_settings(), "tenant-1")
+            tracer.callback_handler("sess-1")
+            tracer.callback_handler("sess-2")
+
+            calls = mock_tc_cls.call_args_list
+            assert calls[0].kwargs["session_id"] == "sess-1"
+            assert calls[1].kwargs["session_id"] == "sess-2"
+
+    def test_flush_calls_global_langfuse_client(self):
+        with patch("observability.tracer.get_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_get_client.return_value = mock_client
+
+            tracer = AgentTracer(make_settings(), "tenant-1")
+            tracer.flush()
+
+            mock_get_client.assert_called_once()
+            mock_client.flush.assert_called_once()

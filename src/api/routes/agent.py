@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from langchain_core.messages import AIMessage
+from fastapi import APIRouter, HTTPException, Request
 
 from agent.graph import run_agent
-from agent.state import Task
-from api.schemas import AgentRequest, AgentResponse, ErrorDetail, ErrorResponse, ToolCall
+from api.schemas import AgentRequest, AgentResponse, ToolCall
 from guardrails.input import GuardrailViolation
 
 router = APIRouter()
@@ -15,14 +14,12 @@ router = APIRouter()
 async def run(request: Request, body: AgentRequest) -> AgentResponse:
     app_state = request.app.state
 
-    # Input guardrail
     try:
         app_state.input_guardrail.validate(body.input)
     except GuardrailViolation as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
-    tracer = app_state.tracer
-    trace = tracer.start_trace(body.session_id, body.input)
+    handler = app_state.tracer.callback_handler(body.session_id)
 
     try:
         system_prompt = app_state.prompts.get_system_prompt()
@@ -32,37 +29,34 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
             session_id=body.session_id,
             user_input=body.input,
             system_prompt=system_prompt,
+            callbacks=[handler],
         )
-
-        # Extract last AI message as output
-        from langchain_core.messages import AIMessage
-        ai_messages = [m for m in final_state.messages if isinstance(m, AIMessage)]
-        output = ai_messages[-1].content if ai_messages else ""
-
-        completed_tasks = [t for t in final_state.tasks if t.status == "completed"]
-        tool_calls = [
-            ToolCall(
-                tool_name=t.tool_name or "",
-                args=t.tool_args,
-                result=t.result or "",
-                success=t.status == "completed",
-            )
-            for t in final_state.tasks
-            if t.tool_name
-        ]
-
-        response = AgentResponse(
-            session_id=body.session_id,
-            tenant_id=body.tenant_id,
-            output=output,
-            tasks_completed=completed_tasks,
-            tool_calls=tool_calls,
-            trace_id=str(trace.id) if hasattr(trace, "id") else "",
-        )
-
-        tracer.end_trace(trace, output, {})
-        return response
-
     except Exception as exc:
-        tracer.end_trace(trace, "", {})
+        app_state.tracer.flush()
         raise HTTPException(status_code=500, detail=str(exc))
+
+    ai_messages = [m for m in final_state.messages if isinstance(m, AIMessage)]
+    output = ai_messages[-1].content if ai_messages else ""
+
+    completed_tasks = [t for t in final_state.tasks if t.status == "completed"]
+    tool_calls = [
+        ToolCall(
+            tool_name=t.tool_name or "",
+            args=t.tool_args,
+            result=t.result or "",
+            success=t.status == "completed",
+        )
+        for t in final_state.tasks
+        if t.tool_name
+    ]
+
+    app_state.tracer.flush()
+
+    return AgentResponse(
+        session_id=body.session_id,
+        tenant_id=body.tenant_id,
+        output=output,
+        tasks_completed=completed_tasks,
+        tool_calls=tool_calls,
+        trace_id=str(handler.last_trace_id) if getattr(handler, "last_trace_id", None) else "",
+    )

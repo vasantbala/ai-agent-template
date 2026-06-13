@@ -30,7 +30,19 @@ def base_env(monkeypatch):
     monkeypatch.delenv("MCP_SERVERS", raising=False)
 
 
+# Optional env vars that may leak from a real .env into the test process.
+# We clear these so that defaults and absence tests are reliable.
+_OPTIONAL_ENV = [
+    "LLM__BASE_URL", "LLM__MAX_TOKENS", "LLM__TEMPERATURE",
+    "LANGFUSE__HOST",
+    "AGENT__NAME", "AGENT__VERSION", "AGENT__PROMPT_VERSION", "AGENT__MAX_ITERATIONS",
+    "ENVIRONMENT", "MCP_SERVERS",
+]
+
+
 def make_settings(monkeypatch, extra: dict | None = None) -> Settings:
+    for key in _OPTIONAL_ENV:
+        monkeypatch.delenv(key, raising=False)
     for key, value in REQUIRED_ENV.items():
         monkeypatch.setenv(key, value)
     if extra:

@@ -36,6 +36,10 @@ class LiteLLMJudge(DeepEvalBaseLLM):
     def get_model_name(self) -> str:
         return self._settings.model
 
+    # Instruct the judge to output only JSON so trimAndLoadJson never
+    # picks up JSON fragments from the evaluated content in the reasoning.
+    _SYSTEM = "You are an evaluation assistant. Respond with ONLY a valid JSON object — no preamble, no explanation, no markdown."
+
     def _call_kwargs(self) -> dict:
         kwargs = {
             "model": _model_string(self._settings),
@@ -51,7 +55,10 @@ class LiteLLMJudge(DeepEvalBaseLLM):
         import litellm
 
         response = litellm.completion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": self._SYSTEM},
+                {"role": "user", "content": prompt},
+            ],
             **self._call_kwargs(),
         )
         return response.choices[0].message.content or ""
@@ -60,7 +67,10 @@ class LiteLLMJudge(DeepEvalBaseLLM):
         import litellm
 
         response = await litellm.acompletion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": self._SYSTEM},
+                {"role": "user", "content": prompt},
+            ],
             **self._call_kwargs(),
         )
         return response.choices[0].message.content or ""

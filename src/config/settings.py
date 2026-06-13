@@ -55,6 +55,14 @@ class ReliabilityConfig(BaseModel):
     hitl_enabled: bool = False
 
 
+class EvalConfig(BaseModel):
+    enabled: bool = False
+    metrics: list[Literal["correctness", "faithfulness", "relevancy"]] = ["correctness"]
+    threshold: float = 0.7
+    model: str = "gpt-4o"
+    golden_dataset_path: str = "evals/golden/default.json"
+
+
 class EmbeddingSettings(BaseModel):
     model: str = "text-embedding-3-small"
     api_key: str | None = None  # falls back to LLM api_key when None
@@ -80,6 +88,7 @@ class Settings(BaseSettings):
     reliability: ReliabilityConfig = ReliabilityConfig()
     embedding: EmbeddingSettings = EmbeddingSettings()
     memory: MemoryConfig = MemoryConfig()
+    eval: EvalConfig = EvalConfig()
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",

@@ -2,7 +2,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, _reset_settings
+from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, EvalConfig, _reset_settings
 
 
 # Minimal valid env vars required by Settings
@@ -44,6 +44,7 @@ _OPTIONAL_ENV = [
     "EMBEDDING__MODEL", "EMBEDDING__API_KEY", "EMBEDDING__DIMENSIONS",
     "MEMORY__ENABLED", "MEMORY__SCOPE", "MEMORY__TOP_K", "MEMORY__COLLECTION_NAME",
     "MEMORY__QDRANT_URL", "MEMORY__QDRANT_API_KEY",
+    "EVAL__ENABLED", "EVAL__METRICS", "EVAL__THRESHOLD", "EVAL__MODEL", "EVAL__GOLDEN_DATASET_PATH",
 ]
 
 
@@ -286,3 +287,40 @@ class TestMemoryConfig:
         assert m.enabled is True
         assert m.scope == "tenant"
         assert m.top_k == 3
+
+
+class TestEvalConfig:
+    def test_eval_defaults(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        e = s.eval
+        assert e.enabled is False
+        assert e.metrics == ["correctness"]
+        assert e.threshold == 0.7
+        assert e.model == "gpt-4o"
+        assert e.golden_dataset_path == "evals/golden/default.json"
+
+    def test_eval_enabled_via_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"EVAL__ENABLED": "true"})
+        assert s.eval.enabled is True
+
+    def test_eval_threshold_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"EVAL__THRESHOLD": "0.9"})
+        assert s.eval.threshold == 0.9
+
+    def test_eval_model_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"EVAL__MODEL": "claude-opus-4-8"})
+        assert s.eval.model == "claude-opus-4-8"
+
+    def test_eval_golden_dataset_path_overrideable(self, monkeypatch):
+        s = make_settings(monkeypatch, {"EVAL__GOLDEN_DATASET_PATH": "evals/golden/smoke.json"})
+        assert s.eval.golden_dataset_path == "evals/golden/smoke.json"
+
+    def test_eval_config_standalone(self):
+        e = EvalConfig(enabled=True, threshold=0.8, model="gpt-4o-mini")
+        assert e.enabled is True
+        assert e.threshold == 0.8
+        assert e.model == "gpt-4o-mini"
+
+    def test_eval_invalid_metric_raises(self):
+        with pytest.raises(Exception):
+            EvalConfig(metrics=["hallucination"])

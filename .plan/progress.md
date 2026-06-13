@@ -62,6 +62,19 @@ Graph wiring fully complete:
 - `reason` node accumulates `tokens_used` in state and returns error when `max_tokens_per_run` is exceeded
 - `build_graph` wires HITL node conditionally: `reason → hitl → execute` when `hitl_enabled=true`
 
+## What's Next (Phase 4)
+
+- [x] User approved `.plan/phase-4-design.md` on 2026-06-13
+- [x] Component 1: EvalConfig in settings — 7 new tests, 197 total green
+- [x] Component 2: GoldenDataset + starter cases (5 cases in evals/golden/default.json) — 9 new tests
+- [x] Component 3: Metrics factory (GEval/Faithfulness/Relevancy) — 8 new tests
+- [x] Component 4: EvalRunner (run_case + run_dataset) — 7 new tests
+- [x] Component 5: Langfuse score reporting (AgentTracer.log_score) — 2 new tests
+- [x] Component 6: Golden eval test suite (tests/evals/, pytest -m eval) — 5 parametrized cases
+- [x] Component 7: A/B comparison script (scripts/compare_evals.py) — manual
+
+**Phase 4 complete — 223 unit+integration tests passing**
+
 ## Phase Completion Status
 
 | Phase | Status |
@@ -69,7 +82,7 @@ Graph wiring fully complete:
 | Phase 1 — Foundation | ✅ Complete — 90 tests green |
 | Phase 2 — Reliability | ✅ Complete — 139 tests green |
 | Phase 3 — Memory | ✅ Complete — 184 tests green |
-| Phase 4 — Evals & Quality | Design written, awaiting approval |
+| Phase 4 — Evals & Quality | ✅ Complete — 223 tests green |
 | Phase 5 — Multi-agent | Not started |
 | Phase 6 — Deployment & Triggers | Not started |
 | Phase 7 — Auth & Security | Not started |

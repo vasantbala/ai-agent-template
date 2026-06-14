@@ -12,6 +12,7 @@ from agent.state import AgentState
 from config.prompts import PromptManager
 from agent.registry import AgentRegistry
 from config.settings import AgentConfig, CostConfig, MemoryConfig, ReliabilityConfig
+from security.permissions import ToolPermissionGuard
 from llm.client import LLMClient
 from reliability.context import ContextManager
 from tools.registry import MCPRegistry
@@ -60,6 +61,7 @@ def build_graph(
     rel = reliability or ReliabilityConfig()
     mem_cfg = memory_config or MemoryConfig()
     cost_enabled = cost_config.enabled if cost_config is not None else True
+    permission_guard = ToolPermissionGuard(agent_config.allowed_tools) if agent_config.allowed_tools else None
     context_mgr = ContextManager(llm, threshold_tokens=rel.context_window_threshold)
 
     async def _retrieve_memories(state: AgentState) -> dict[str, Any]:
@@ -82,7 +84,7 @@ def build_graph(
         )
 
     async def _execute(state: AgentState) -> dict[str, Any]:
-        return await execute(state, registry, agent_registry)
+        return await execute(state, registry, agent_registry, permission_guard)
 
     builder = StateGraph(AgentState)
     builder.add_node("retrieve_memories", _retrieve_memories)

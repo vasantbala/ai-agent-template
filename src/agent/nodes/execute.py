@@ -9,12 +9,14 @@ from tools.registry import MCPRegistry
 
 if TYPE_CHECKING:
     from agent.registry import AgentRegistry
+    from security.permissions import ToolPermissionGuard
 
 
 async def execute(
     state: AgentState,
     registry: MCPRegistry,
     agent_registry: AgentRegistry | None = None,
+    permission_guard: ToolPermissionGuard | None = None,
 ) -> dict[str, Any]:
     tasks = list(state.tasks)
     idx = state.current_task_index
@@ -27,6 +29,8 @@ async def execute(
 
     try:
         tool_name = task.tool_name or ""
+        if permission_guard:
+            permission_guard.check(tool_name)
         if agent_registry and agent_registry.is_sub_agent_tool(tool_name):
             client = agent_registry.get(tool_name)
             result = await client.call(

@@ -10,6 +10,7 @@ from agent.graph import build_graph
 from agent.registry import AgentRegistry
 from api.routes.agent import router as agent_router
 from api.routes.health import router as health_router
+from api.routes.stream import router as stream_router
 from config.prompts import PromptManager
 from config.settings import get_settings
 from guardrails.input import InputGuardrail
@@ -74,6 +75,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(agent_router)
+    app.include_router(stream_router)
     return app
 
 

@@ -118,6 +118,11 @@ Create a seed script `scripts/seed_kb.py`:
 
 ```python
 import asyncio
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
 from config.settings import get_settings
 from memory.embedding import EmbeddingClient
 from memory.store import MemoryStore, Memory
@@ -170,7 +175,11 @@ If your knowledge base lives in `.md` files (docs, wikis, READMEs), replace the 
 
 ```python
 import asyncio
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
 from config.settings import get_settings
 from memory.embedding import EmbeddingClient
 from memory.store import MemoryStore, Memory

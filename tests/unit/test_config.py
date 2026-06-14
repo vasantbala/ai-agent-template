@@ -2,7 +2,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, EvalConfig, SubAgentConfig, _reset_settings
+from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, EvalConfig, SubAgentConfig, CostConfig, ScheduleConfig, _reset_settings
 
 
 # Minimal valid env vars required by Settings
@@ -45,6 +45,8 @@ _OPTIONAL_ENV = [
     "MEMORY__ENABLED", "MEMORY__SCOPE", "MEMORY__TOP_K", "MEMORY__COLLECTION_NAME",
     "MEMORY__QDRANT_URL", "MEMORY__QDRANT_API_KEY",
     "EVAL__ENABLED", "EVAL__METRICS", "EVAL__THRESHOLD", "EVAL__MODEL", "EVAL__GOLDEN_DATASET_PATH",
+    "COST__ENABLED",
+    "SCHEDULE__ENABLED", "SCHEDULE__CRON", "SCHEDULE__INPUT", "SCHEDULE__TENANT_ID", "SCHEDULE__SESSION_ID_PREFIX",
 ]
 
 
@@ -361,3 +363,62 @@ class TestSubAgentConfig:
         c = SubAgentConfig(name="x", url="http://localhost:9000", description="test agent")
         assert c.name == "x"
         assert c.timeout == 30.0
+
+
+class TestCostConfig:
+    def test_cost_enabled_by_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.cost.enabled is True
+
+    def test_cost_enabled_false_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"COST__ENABLED": "false"})
+        assert s.cost.enabled is False
+
+    def test_cost_enabled_true_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"COST__ENABLED": "true"})
+        assert s.cost.enabled is True
+
+    def test_cost_config_standalone(self):
+        c = CostConfig(enabled=False)
+        assert c.enabled is False
+
+
+class TestScheduleConfig:
+    def test_schedule_disabled_by_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.schedule.enabled is False
+
+    def test_schedule_cron_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.schedule.cron == "0 9 * * *"
+
+    def test_schedule_enabled_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"SCHEDULE__ENABLED": "true"})
+        assert s.schedule.enabled is True
+
+    def test_schedule_cron_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"SCHEDULE__CRON": "0 6 * * 1"})
+        assert s.schedule.cron == "0 6 * * 1"
+
+    def test_schedule_input_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"SCHEDULE__INPUT": "Run daily digest"})
+        assert s.schedule.input == "Run daily digest"
+
+    def test_schedule_tenant_id_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"SCHEDULE__TENANT_ID": "acme"})
+        assert s.schedule.tenant_id == "acme"
+
+    def test_schedule_session_id_prefix_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.schedule.session_id_prefix == "scheduled"
+
+    def test_schedule_session_id_prefix_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"SCHEDULE__SESSION_ID_PREFIX": "cron"})
+        assert s.schedule.session_id_prefix == "cron"
+
+    def test_schedule_config_standalone(self):
+        c = ScheduleConfig(enabled=True, cron="*/5 * * * *", input="ping", tenant_id="dev")
+        assert c.enabled is True
+        assert c.cron == "*/5 * * * *"
+        assert c.input == "ping"
+        assert c.tenant_id == "dev"

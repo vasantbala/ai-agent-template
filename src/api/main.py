@@ -13,6 +13,7 @@ from api.routes.health import router as health_router
 from api.routes.stream import router as stream_router
 from api.routes.webhook import router as webhook_router
 from auth.middleware import require_auth
+from audit.logger import AuditLogger
 from security.pii import PiiScrubber
 from triggers.scheduler import start_scheduler
 from config.prompts import PromptManager
@@ -54,6 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             memory_config=settings.memory,
             agent_registry=agent_registry,
             cost_config=settings.cost,
+            audit_logger=app.state.audit_logger,
         )
 
         app.state.settings = settings
@@ -66,6 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.input_guardrail = InputGuardrail()
         app.state.output_guardrail = OutputGuardrail()
         app.state.pii_scrubber = PiiScrubber(settings.pii)
+        app.state.audit_logger = AuditLogger(settings.audit)
 
         scheduler = start_scheduler(app, settings.schedule)
 

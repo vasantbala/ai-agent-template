@@ -12,6 +12,7 @@ from agent.state import AgentState
 from config.prompts import PromptManager
 from agent.registry import AgentRegistry
 from config.settings import AgentConfig, CostConfig, MemoryConfig, ReliabilityConfig
+from audit.logger import AuditLogger
 from security.permissions import ToolPermissionGuard
 from llm.client import LLMClient
 from reliability.context import ContextManager
@@ -57,6 +58,7 @@ def build_graph(
     memory_config: MemoryConfig | None = None,
     agent_registry: AgentRegistry | None = None,
     cost_config: CostConfig | None = None,
+    audit_logger: AuditLogger | None = None,
 ) -> Any:
     rel = reliability or ReliabilityConfig()
     mem_cfg = memory_config or MemoryConfig()
@@ -73,7 +75,7 @@ def build_graph(
     async def _reason(state: AgentState) -> dict[str, Any]:
         mcp_tools = await registry.get_all_tools()
         sub_agent_tools = agent_registry.tool_schemas() if agent_registry else []
-        return await reason(
+        result = await reason(
             state,
             llm,
             mcp_tools + sub_agent_tools,
@@ -82,9 +84,31 @@ def build_graph(
             max_tokens=rel.max_tokens_per_run,
             cost_enabled=cost_enabled,
         )
+        if audit_logger:
+            tool_call_names = [t.tool_name for t in result.get("tasks", []) if t.tool_name]
+            audit_logger.llm_decision(
+                session_id=state.session_id,
+                tenant_id=state.tenant_id,
+                iteration=state.iteration + 1,
+                tool_calls=tool_call_names,
+            )
+        return result
 
     async def _execute(state: AgentState) -> dict[str, Any]:
-        return await execute(state, registry, agent_registry, permission_guard)
+        result = await execute(state, registry, agent_registry, permission_guard)
+        if audit_logger and result.get("tasks"):
+            idx = state.current_task_index
+            if idx < len(result["tasks"]):
+                task = result["tasks"][idx]
+                audit_logger.tool_call(
+                    session_id=state.session_id,
+                    tenant_id=state.tenant_id,
+                    tool_name=task.tool_name or "",
+                    args=task.tool_args,
+                    result=task.result or "",
+                    success=task.status == "completed",
+                )
+        return result
 
     builder = StateGraph(AgentState)
     builder.add_node("retrieve_memories", _retrieve_memories)

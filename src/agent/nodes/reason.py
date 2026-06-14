@@ -19,6 +19,7 @@ async def reason(
     max_iterations: int,
     context_mgr: ContextManager | None = None,
     max_tokens: int = 0,
+    cost_enabled: bool = True,
 ) -> dict[str, Any]:
     if state.iteration >= max_iterations:
         return {"error": f"Max iterations ({max_iterations}) reached without completing all tasks"}
@@ -47,6 +48,15 @@ async def reason(
             "error": f"Token budget exceeded: used {total_tokens}, limit {max_tokens}",
         }
 
+    # Accumulate cost
+    new_cost = 0.0
+    if cost_enabled:
+        try:
+            import litellm
+            new_cost = litellm.completion_cost(completion_response=response) or 0.0
+        except Exception:
+            new_cost = 0.0
+
     choice = response.choices[0]
     ai_message = AIMessage(content=choice.message.content or "")
 
@@ -64,6 +74,7 @@ async def reason(
         "messages": [ai_message],
         "iteration": state.iteration + 1,
         "tokens_used": total_tokens,
+        "cost_usd": state.cost_usd + new_cost,
     }
     if new_tasks:
         updates["tasks"] = new_tasks

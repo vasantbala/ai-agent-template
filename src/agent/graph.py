@@ -11,7 +11,7 @@ from agent.nodes.reason import reason
 from agent.state import AgentState
 from config.prompts import PromptManager
 from agent.registry import AgentRegistry
-from config.settings import AgentConfig, MemoryConfig, ReliabilityConfig
+from config.settings import AgentConfig, CostConfig, MemoryConfig, ReliabilityConfig
 from llm.client import LLMClient
 from reliability.context import ContextManager
 from tools.registry import MCPRegistry
@@ -55,9 +55,11 @@ def build_graph(
     memory_store: MemoryStore | None = None,
     memory_config: MemoryConfig | None = None,
     agent_registry: AgentRegistry | None = None,
+    cost_config: CostConfig | None = None,
 ) -> Any:
     rel = reliability or ReliabilityConfig()
     mem_cfg = memory_config or MemoryConfig()
+    cost_enabled = cost_config.enabled if cost_config is not None else True
     context_mgr = ContextManager(llm, threshold_tokens=rel.context_window_threshold)
 
     async def _retrieve_memories(state: AgentState) -> dict[str, Any]:
@@ -76,6 +78,7 @@ def build_graph(
             agent_config.max_iterations,
             context_mgr=context_mgr,
             max_tokens=rel.max_tokens_per_run,
+            cost_enabled=cost_enabled,
         )
 
     async def _execute(state: AgentState) -> dict[str, Any]:

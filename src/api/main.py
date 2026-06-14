@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             memory_store=memory_store if settings.memory.enabled else None,
             memory_config=settings.memory,
             agent_registry=agent_registry,
+            cost_config=settings.cost,
         )
 
         app.state.settings = settings

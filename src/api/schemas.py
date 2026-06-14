@@ -36,6 +36,7 @@ class AgentResponse(BaseModel):
     tasks_completed: list[Task] = []
     tool_calls: list[ToolCall] = []
     tokens_used: TokenUsage = TokenUsage()
+    cost_usd: float = 0.0
     trace_id: str = ""
 
 

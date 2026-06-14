@@ -26,4 +26,5 @@ class AgentState(BaseModel):
     current_task_index: int = 0
     iteration: int = 0
     tokens_used: int = 0
+    cost_usd: float = 0.0
     error: str | None = None

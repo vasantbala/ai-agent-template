@@ -77,6 +77,13 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
         if t.tool_name
     ]
 
+    trace_id = str(handler.last_trace_id) if getattr(handler, "last_trace_id", None) else ""
+    if trace_id and getattr(app_state.settings, "cost", None) and app_state.settings.cost.enabled:
+        try:
+            app_state.tracer.log_score(trace_id, "cost_usd", final_state.cost_usd)
+        except Exception:
+            pass
+
     app_state.tracer.flush()
 
     return AgentResponse(
@@ -85,5 +92,6 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
         output=output,
         tasks_completed=completed_tasks,
         tool_calls=tool_calls,
-        trace_id=str(handler.last_trace_id) if getattr(handler, "last_trace_id", None) else "",
+        cost_usd=final_state.cost_usd,
+        trace_id=trace_id,
     )

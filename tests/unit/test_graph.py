@@ -262,6 +262,7 @@ class TestBuildGraph:
             "current_task_index": 0,
             "iteration": 1,
             "tokens_used": 0,
+            "cost_usd": 0.0,
             "error": None,
         }
 
@@ -282,6 +283,7 @@ class TestBuildGraph:
             "current_task_index": 0,
             "iteration": 1,
             "tokens_used": 0,
+            "cost_usd": 0.0,
             "error": None,
         }
         cb = MagicMock()
@@ -364,3 +366,40 @@ class TestReasonNodeWiring:
         # Should not raise even without context_mgr
         result = await reason(state, llm, [], max_iterations=10, context_mgr=None)
         assert "error" not in result or result.get("error") is None
+
+
+class TestReasonNodeCost:
+    async def test_accumulates_cost_usd(self):
+        llm = AsyncMock(spec=LLMClient)
+        llm.complete.return_value = mock_llm_response("Done")
+        state = make_state(cost_usd=0.001)
+
+        with patch("litellm.completion_cost", return_value=0.002):
+            result = await reason(state, llm, [], max_iterations=10, cost_enabled=True)
+
+        assert abs(result["cost_usd"] - 0.003) < 1e-9
+
+    async def test_cost_disabled_stays_zero(self):
+        llm = AsyncMock(spec=LLMClient)
+        llm.complete.return_value = mock_llm_response("Done")
+        state = make_state(cost_usd=0.0)
+
+        with patch("litellm.completion_cost", return_value=0.005) as mock_cost:
+            result = await reason(state, llm, [], max_iterations=10, cost_enabled=False)
+
+        mock_cost.assert_not_called()
+        assert result["cost_usd"] == 0.0
+
+    async def test_cost_zero_for_unknown_model(self):
+        llm = AsyncMock(spec=LLMClient)
+        llm.complete.return_value = mock_llm_response("Done")
+        state = make_state(cost_usd=0.0)
+
+        with patch("litellm.completion_cost", side_effect=Exception("Unknown model")):
+            result = await reason(state, llm, [], max_iterations=10, cost_enabled=True)
+
+        assert result["cost_usd"] == 0.0
+
+    async def test_cost_usd_in_state_default_zero(self):
+        state = make_state()
+        assert state.cost_usd == 0.0

@@ -137,7 +137,7 @@ def check_health(agent_url: str) -> str:
 
 # ── layout ────────────────────────────────────────────────────────────────────
 
-with gr.Blocks(title="AI Agent Demo", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="AI Agent Demo") as demo:
     gr.Markdown("# AI Agent Demo")
 
     with gr.Row():
@@ -193,7 +193,6 @@ with gr.Blocks(title="AI Agent Demo", theme=gr.themes.Soft()) as demo:
                 with gr.Tab("Chat"):
                     chatbot = gr.ChatInterface(
                         fn=chat,
-                        type="messages",
                         additional_inputs=[
                             agent_url,
                             tenant_id,
@@ -240,4 +239,5 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         server_port=7860,
         show_api=False,
+        theme=gr.themes.Soft(),
     )

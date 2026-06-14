@@ -10,19 +10,138 @@ http://localhost:8000
 
 ## Authentication
 
-When `AUTH__ENABLED=true`, all `/v1/` routes require one of:
+When `AUTH__ENABLED=true`, all `/v1/` routes require one of the two schemes below. The `/health` endpoint is always unauthenticated.
 
-**API key** (recommended for server-to-server):
-```
-X-API-Key: sk-agent-abc123
+---
+
+### API key (recommended for server-to-server)
+
+**Configure keys in `.env`:**
+
+```env
+AUTH__ENABLED=true
+AUTH__API_KEYS='["sk-agent-abc123", "sk-agent-def456"]'
 ```
 
-**JWT bearer token**:
-```
-Authorization: Bearer <token>
+Keys are arbitrary strings — generate them however you like (`uuidgen`, `openssl rand -hex 32`, etc.). Each entry in the list is independently valid.
+
+**curl:**
+
+```bash
+curl -X POST http://localhost:8000/v1/agent/run \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: sk-agent-abc123" \
+  -d '{"tenant_id": "acme", "input": "What is the refund policy?"}'
 ```
 
-The `/health` endpoint is always unauthenticated.
+**Python:**
+
+```python
+import httpx
+
+response = httpx.post(
+    "http://localhost:8000/v1/agent/run",
+    headers={"X-API-Key": "sk-agent-abc123"},
+    json={"tenant_id": "acme", "input": "What is the refund policy?"},
+)
+print(response.json()["output"])
+```
+
+**.NET (C#):**
+
+```csharp
+using var http = new HttpClient();
+http.DefaultRequestHeaders.Add("X-API-Key", "sk-agent-abc123");
+
+var response = await http.PostAsJsonAsync(
+    "http://localhost:8000/v1/agent/run",
+    new { tenant_id = "acme", input = "What is the refund policy?" }
+);
+var result = await response.Content.ReadFromJsonAsync<AgentResponse>();
+Console.WriteLine(result?.Output);
+```
+
+---
+
+### JWT bearer token (useful when callers already have a token)
+
+**Configure in `.env`:**
+
+```env
+AUTH__ENABLED=true
+AUTH__JWT_SECRET=change-me-in-production-use-32-chars-min
+AUTH__JWT_ALGORITHM=HS256
+```
+
+**Generate a token** (one-off script or CI step):
+
+```python
+# scripts/generate_token.py
+from jose import jwt
+import datetime, os
+
+secret = os.environ["AUTH__JWT_SECRET"]
+payload = {
+    "sub": "certify-service",        # who is calling
+    "tenant_id": "acme",
+    "iat": datetime.datetime.now(datetime.UTC),
+    "exp": datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=30),
+}
+token = jwt.encode(payload, secret, algorithm="HS256")
+print(token)
+```
+
+```bash
+AUTH__JWT_SECRET=change-me uv run python scripts/generate_token.py
+```
+
+**curl:**
+
+```bash
+TOKEN="eyJhbGci..."
+
+curl -X POST http://localhost:8000/v1/agent/run \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"tenant_id": "acme", "input": "What is the refund policy?"}'
+```
+
+**.NET (C#):**
+
+```csharp
+// token retrieved from your auth service or config
+var token = configuration["AgentToken"];
+
+using var http = new HttpClient();
+http.DefaultRequestHeaders.Authorization =
+    new AuthenticationHeaderValue("Bearer", token);
+
+var response = await http.PostAsJsonAsync(
+    "http://localhost:8000/v1/agent/run",
+    new { tenant_id = "acme", input = "What is the refund policy?" }
+);
+```
+
+**Missing or invalid credentials return:**
+
+```json
+HTTP 401
+{"detail": "Invalid or missing credentials"}
+```
+
+---
+
+### Using both schemes together
+
+You can configure both simultaneously — the middleware accepts either. Useful when different callers use different auth mechanisms:
+
+```env
+AUTH__ENABLED=true
+AUTH__API_KEYS='["sk-agent-abc123"]'
+AUTH__JWT_SECRET=change-me-in-production
+```
+
+API key is checked first; if absent or invalid, JWT is tried. If both fail, 401 is returned.
 
 ---
 

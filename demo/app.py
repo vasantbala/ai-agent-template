@@ -201,9 +201,9 @@ with gr.Blocks(title="AI Agent Demo") as demo:
                             session_id,
                         ],
                         examples=[
-                            "What can you help me with?",
-                            "What is the return policy for annual plans?",
-                            "Which plan includes API access?",
+                            ["What can you help me with?"],
+                            ["What is the return policy for annual plans?"],
+                            ["Which plan includes API access?"],
                         ],
                     )
 

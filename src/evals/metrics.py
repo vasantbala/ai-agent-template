@@ -27,7 +27,11 @@ def make_metrics(
             result.append(
                 GEval(
                     name="Correctness",
-                    criteria="Does the actual output correctly answer the input question, consistent with the expected output?",
+                    evaluation_steps=[
+                        "Check whether the actual output correctly and completely answers the input question.",
+                        "Compare the actual output semantically against the expected output — exact wording need not match, but all key facts must be present.",
+                        "Penalise responses that are factually incorrect, miss key information from the expected output, or contradict it.",
+                    ],
                     evaluation_params=[
                         SingleTurnParams.INPUT,
                         SingleTurnParams.ACTUAL_OUTPUT,

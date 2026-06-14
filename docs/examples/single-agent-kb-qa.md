@@ -234,7 +234,7 @@ uv run python scripts/seed_kb.py
 ### 4. Start the agent
 
 ```bash
-uv run uvicorn api.main:app --reload
+PYTHONPATH=src uv run uvicorn api.main:app --reload
 ```
 
 ---

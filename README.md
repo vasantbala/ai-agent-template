@@ -73,7 +73,7 @@ This starts Langfuse (observability) and Qdrant (vector memory) locally.
 ### 4. Run the agent
 
 ```bash
-uv run uvicorn api.main:app --reload
+PYTHONPATH=src uv run uvicorn api.main:app --reload
 ```
 
 ### 5. Send your first request

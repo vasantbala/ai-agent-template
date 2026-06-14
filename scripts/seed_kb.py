@@ -1,4 +1,5 @@
 import asyncio
+import re
 import sys
 from pathlib import Path
 
@@ -12,37 +13,50 @@ DOCS_DIR = Path("docs")   # directory containing .md files
 TENANT_ID = "docs-agent"
 
 
-def load_markdown_files(directory: Path) -> list[tuple[str, str]]:
-    """Return (filename, text) pairs for every .md file found recursively."""
-    results = []
+def split_by_heading(text: str) -> list[str]:
+    """Split markdown into sections on h1/h2/h3 headings."""
+    sections = re.split(r'\n(?=#{1,3} )', text.strip())
+    return [s.strip() for s in sections if s.strip()]
+
+
+def load_chunks(directory: Path) -> list[tuple[str, str]]:
+    """Return (label, chunk) pairs for every .md file found recursively."""
+    chunks = []
     for path in sorted(directory.rglob("*.md")):
         text = path.read_text(encoding="utf-8").strip()
-        if text:
-            results.append((path.name, text))
-    return results
+        if not text:
+            continue
+        for i, section in enumerate(split_by_heading(text)):
+            chunks.append((f"{path.name}§{i + 1}", section))
+    return chunks
 
 
 async def seed():
     settings = get_settings()
-    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key, llm_provider=settings.llm.provider, llm_base_url=settings.llm.base_url)
+    embedder = EmbeddingClient(
+        settings.embedding,
+        llm_api_key=settings.llm.api_key,
+        llm_provider=settings.llm.provider,
+        llm_base_url=settings.llm.base_url,
+    )
     store = MemoryStore(settings.memory, embedder)
 
     await store.ensure_collection(dimensions=settings.embedding.dimensions)
 
-    files = load_markdown_files(DOCS_DIR)
-    if not files:
+    chunks = load_chunks(DOCS_DIR)
+    if not chunks:
         print(f"No .md files found under {DOCS_DIR}")
         return
 
-    for i, (filename, text) in enumerate(files):
+    for i, (label, chunk) in enumerate(chunks):
         await store.store(Memory(
-            text=text,
+            text=chunk,
             tenant_id=TENANT_ID,
             session_id="seed",
         ))
-        print(f"Seeded [{i + 1}/{len(files)}]: {filename} ({len(text)} chars)")
+        print(f"Seeded [{i + 1}/{len(chunks)}]: {label} ({len(chunk)} chars)")
 
-    print(f"\nDone — {len(files)} files stored in Qdrant under tenant '{TENANT_ID}'")
+    print(f"\nDone — {len(chunks)} chunks from {DOCS_DIR} stored under tenant '{TENANT_ID}'")
 
 
 asyncio.run(seed())

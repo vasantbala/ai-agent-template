@@ -91,11 +91,11 @@ class TestSettingsLoad:
 
     def test_agent_config_overrideable(self, monkeypatch):
         s = make_settings(monkeypatch, {
-            "AGENT__NAME": "certify-agent",
+            "AGENT__NAME": "my-agent",
             "AGENT__PROMPT_VERSION": "v2",
             "AGENT__MAX_ITERATIONS": "20",
         })
-        assert s.agent.name == "certify-agent"
+        assert s.agent.name == "my-agent"
         assert s.agent.prompt_version == "v2"
         assert s.agent.max_iterations == 20
 

@@ -7,7 +7,7 @@ Non-obvious decisions and the reasoning behind them. Read this before relitigati
 ## Language: Python over TypeScript
 
 **Decision:** Python  
-**Why:** The template runs as a standalone microservice over HTTP/REST. The host product (Certify, web apps) speaks HTTP — the internal language is invisible to consumers. Given that, Python wins on ecosystem maturity: LangGraph Python SDK is significantly more complete than LangGraph.js, LiteLLM and DeepEval are Python-only, and the entire agentic AI community moves Python-first.  
+**Why:** The template runs as a standalone microservice over HTTP/REST. The host product (any web app or desktop client) speaks HTTP — the internal language is invisible to consumers. Given that, Python wins on ecosystem maturity: LangGraph Python SDK is significantly more complete than LangGraph.js, LiteLLM and DeepEval are Python-only, and the entire agentic AI community moves Python-first.  
 **TypeScript would win if:** The agent were embedded directly in a Node.js/web frontend rather than running as a separate service.
 
 ---
@@ -65,4 +65,4 @@ Non-obvious decisions and the reasoning behind them. Read this before relitigati
 ## Consumption Model: Microservice over HTTP/REST
 
 **Decision:** Standalone Docker microservice with FastAPI  
-**Why:** The primary consumer is Worksoft Certify — a .NET/Windows Forms desktop app. Neither Python nor TypeScript is native to .NET. Running the agent as a microservice means Certify (or any web product) calls HTTP endpoints, and the internal implementation is completely decoupled from the host.
+**Why:** The template is designed to be consumed by any host product — .NET/Windows Forms desktop apps, web frontends, or other services. Neither Python nor TypeScript is native to .NET. Running the agent as a microservice means any consumer calls HTTP endpoints, and the internal implementation is completely decoupled from the host.

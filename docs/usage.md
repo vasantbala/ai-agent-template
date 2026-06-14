@@ -82,7 +82,7 @@ import datetime, os
 
 secret = os.environ["AUTH__JWT_SECRET"]
 payload = {
-    "sub": "certify-service",        # who is calling
+    "sub": "my-service",              # who is calling
     "tenant_id": "acme",
     "iat": datetime.datetime.now(datetime.UTC),
     "exp": datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=30),

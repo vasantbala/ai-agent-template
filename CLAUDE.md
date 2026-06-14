@@ -2,7 +2,7 @@
 
 ## Project Goal
 
-A reusable, forkable Python microservice template for building production-grade AI agents. Consumed over HTTP/REST so any host product (web, .NET/Windows Forms, etc.) can integrate without caring about the internal language. Primary near-term use case: adding agentic AI to Worksoft Certify.
+A reusable, forkable Python microservice template for building production-grade AI agents. Consumed over HTTP/REST so any host product (web, .NET/Windows Forms, etc.) can integrate without caring about the internal language.
 
 ## Tech Stack
 

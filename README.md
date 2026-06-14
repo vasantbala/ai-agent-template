@@ -97,6 +97,7 @@ curl -X POST http://localhost:8000/v1/agent/run \
 | `POST` | `/v1/agent/run` | Synchronous agent run — returns full response |
 | `POST` | `/v1/agent/stream` | Streaming run — returns SSE token events |
 | `POST` | `/v1/triggers/webhook` | Fire-and-forget trigger — returns 202 immediately |
+| `POST` | `/v1/kb/seed` | Seed documents into the vector knowledge base |
 
 ### Run request
 
@@ -136,26 +137,129 @@ data: [DONE]
 
 ## Configuration
 
-All configuration is via environment variables using `__` as the nested delimiter.
+All configuration is via environment variables. Use `__` as the nested delimiter (e.g. `LLM__API_KEY`). See `.env.example` for a ready-to-copy template.
+
+### LLM
 
 | Env var | Default | Description |
 |---|---|---|
 | `LLM__PROVIDER` | — | `openai` / `anthropic` / `openrouter` |
-| `LLM__MODEL` | — | Model name (e.g. `claude-sonnet-4-6`) |
+| `LLM__MODEL` | — | Model name (e.g. `claude-sonnet-4-6`, `gpt-4o`) |
 | `LLM__API_KEY` | — | Provider API key |
-| `MEMORY__ENABLED` | `false` | Enable Qdrant long-term memory |
-| `MEMORY__SCOPE` | `user` | `session` / `user` / `tenant` / `global` |
+| `LLM__BASE_URL` | `null` | Override base URL (OpenRouter / LiteLLM proxy) |
+| `LLM__MAX_TOKENS` | `4096` | Max tokens per LLM call |
+| `LLM__TEMPERATURE` | `0.0` | LLM temperature |
+
+### Agent
+
+| Env var | Default | Description |
+|---|---|---|
+| `AGENT__NAME` | `ai-agent` | Agent name — appears in Langfuse traces |
+| `AGENT__VERSION` | `1.0.0` | Version string for traces |
+| `AGENT__PROMPT_VERSION` | `v1` | Prompt directory under `prompts/` |
 | `AGENT__MAX_ITERATIONS` | `10` | Max reason→execute cycles per run |
 | `AGENT__ALLOWED_TOOLS` | `[]` | Tool allowlist — empty = all permitted |
 | `AGENT__SUB_AGENTS` | `[]` | JSON array of sub-agent configs |
-| `AUTH__ENABLED` | `false` | Require `X-API-Key` or JWT on all `/v1/` routes |
-| `AUTH__API_KEYS` | `[]` | Valid API keys |
-| `PII__ENABLED` | `false` | Scrub PII from inputs and outputs |
-| `AUDIT__ENABLED` | `false` | Write structured audit log to `audit.log` |
-| `SCHEDULE__ENABLED` | `false` | Enable cron-based agent runs |
-| `SCHEDULE__CRON` | `0 9 * * *` | Cron expression |
 
-See `.env.example` for the full list.
+### Reliability
+
+| Env var | Default | Description |
+|---|---|---|
+| `RELIABILITY__MAX_TOKENS_PER_RUN` | `50000` | Token budget per run — error returned if exceeded |
+| `RELIABILITY__MCP_RETRY_ATTEMPTS` | `3` | Retry attempts on failed MCP tool calls |
+| `RELIABILITY__MCP_RETRY_BASE_DELAY` | `1.0` | Exponential backoff base delay (seconds) |
+| `RELIABILITY__CIRCUIT_BREAKER_FAILURE_THRESHOLD` | `5` | Consecutive failures before circuit opens |
+| `RELIABILITY__CIRCUIT_BREAKER_RESET_TIMEOUT` | `60.0` | Seconds before circuit tries to close |
+| `RELIABILITY__CONTEXT_WINDOW_THRESHOLD` | `6000` | Token count that triggers conversation summarisation |
+| `RELIABILITY__HITL_ENABLED` | `false` | Pause before each tool call for human approval |
+
+### Memory & Embedding
+
+| Env var | Default | Description |
+|---|---|---|
+| `MEMORY__ENABLED` | `false` | Enable Qdrant long-term memory |
+| `MEMORY__SCOPE` | `user` | `session` / `user` / `tenant` / `global` — see below |
+| `MEMORY__TOP_K` | `5` | Retrieved chunks per query |
+| `MEMORY__COLLECTION_NAME` | `agent_memories` | Qdrant collection name |
+| `MEMORY__QDRANT_URL` | `http://localhost:6333` | Qdrant instance URL |
+| `MEMORY__QDRANT_API_KEY` | `null` | Qdrant Cloud API key (self-hosted: leave unset) |
+| `EMBEDDING__MODEL` | `text-embedding-3-small` | Embedding model |
+| `EMBEDDING__API_KEY` | `null` | Embedding API key (falls back to `LLM__API_KEY`) |
+| `EMBEDDING__DIMENSIONS` | `1536` | Vector dimensions (must match the chosen model) |
+
+**Memory scope values:**
+
+| Scope | Isolation | Use case |
+|---|---|---|
+| `session` | Unique per conversation | Ephemeral working memory for one chat |
+| `user` | Shared across a user's sessions | Personalised assistant that remembers the user |
+| `tenant` | Shared across all users in a tenant | Shared knowledge base / FAQ agent |
+| `global` | No isolation | Single-tenant deployments |
+
+### Auth
+
+| Env var | Default | Description |
+|---|---|---|
+| `AUTH__ENABLED` | `false` | Require auth on all `/v1/` routes |
+| `AUTH__API_KEYS` | `[]` | Valid API key strings (`X-API-Key` header) |
+| `AUTH__JWT_SECRET` | `null` | JWT signing secret |
+| `AUTH__JWT_ALGORITHM` | `HS256` | JWT algorithm |
+
+### Security
+
+| Env var | Default | Description |
+|---|---|---|
+| `PII__ENABLED` | `false` | Scrub PII from input and output |
+| `PII__PATTERNS` | `[email,phone,ssn,credit_card]` | Patterns: `email` `phone` `ssn` `credit_card` `ip_address` |
+| `PII__REPLACEMENT` | `[REDACTED]` | Replacement string for matched PII |
+| `AUDIT__ENABLED` | `false` | Write structured JSON audit log |
+| `AUDIT__LOG_PATH` | `audit.log` | Audit log file path (`""` = stdout only) |
+
+### Cost & Scheduling
+
+| Env var | Default | Description |
+|---|---|---|
+| `COST__ENABLED` | `true` | Track `cost_usd` per run via LiteLLM |
+| `SCHEDULE__ENABLED` | `false` | Enable cron-based scheduled runs |
+| `SCHEDULE__CRON` | `0 9 * * *` | Cron expression |
+| `SCHEDULE__INPUT` | `""` | Task text sent on each scheduled run |
+| `SCHEDULE__TENANT_ID` | `""` | Tenant for scheduled runs |
+| `SCHEDULE__SESSION_ID_PREFIX` | `scheduled` | Session ID prefix for scheduled runs |
+
+### Evals
+
+| Env var | Default | Description |
+|---|---|---|
+| `EVAL__ENABLED` | `false` | Enable eval harness |
+| `EVAL__METRICS` | `[correctness]` | `correctness` / `faithfulness` / `relevancy` |
+| `EVAL__THRESHOLD` | `0.7` | Minimum passing score (0–1) |
+| `EVAL__MODEL` | `gpt-4o` | LLM-as-judge model |
+| `EVAL__GOLDEN_DATASET_PATH` | `evals/golden/default.json` | Path to golden test cases |
+
+---
+
+## Demo UI
+
+A Gradio chat interface for testing the agent interactively — no curl required. Ships as a separate overlay so the core `docker-compose.yml` is unchanged.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build
+```
+
+Open **http://localhost:7860**. Features:
+
+- Real-time streaming chat (tokens appear as they arrive)
+- KB Seeder tab — paste documents directly into Qdrant
+- Config sidebar — set agent URL, tenant ID, and API key at runtime
+
+To pass an API key when `AUTH__ENABLED=true`:
+
+```bash
+AGENT_API_KEY=sk-agent-abc123 docker compose \
+  -f docker-compose.yml -f docker-compose.demo.yml up --build
+```
+
+> The demo UI is for development and manual testing only. Do not include it in production deployments.
 
 ---
 

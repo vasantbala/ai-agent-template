@@ -11,6 +11,7 @@ from agent.registry import AgentRegistry
 from api.routes.agent import router as agent_router
 from api.routes.health import router as health_router
 from api.routes.stream import router as stream_router
+from api.routes.kb import router as kb_router
 from api.routes.webhook import router as webhook_router
 from auth.middleware import require_auth
 from audit.logger import AuditLogger
@@ -92,6 +93,7 @@ def create_app() -> FastAPI:
     app.include_router(agent_router, dependencies=[Depends(require_auth)])
     app.include_router(stream_router, dependencies=[Depends(require_auth)])
     app.include_router(webhook_router, dependencies=[Depends(require_auth)])
+    app.include_router(kb_router, dependencies=[Depends(require_auth)])
     return app
 
 

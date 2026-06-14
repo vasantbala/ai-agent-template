@@ -75,6 +75,16 @@ Graph wiring fully complete:
 
 **Phase 4 complete — 223 unit+integration tests passing**
 
+## What's Next (Phase 5)
+
+- [x] User approved `.plan/phase-5-design.md` on 2026-06-14
+- [x] Component 1: SubAgentConfig in settings — 6 new tests, 50 config tests green
+- [x] Component 2: SubAgentClient — 8 tests green
+- [x] Component 3: AgentRegistry — 12 tests green
+- [x] Component 4: Wire into execute + graph + API — 4 new routing tests; 253 total green
+
+**Phase 5 complete — 253 unit+integration tests passing**
+
 ## Phase Completion Status
 
 | Phase | Status |
@@ -83,7 +93,7 @@ Graph wiring fully complete:
 | Phase 2 — Reliability | ✅ Complete — 139 tests green |
 | Phase 3 — Memory | ✅ Complete — 184 tests green |
 | Phase 4 — Evals & Quality | ✅ Complete — 223 tests green |
-| Phase 5 — Multi-agent | Not started |
+| Phase 5 — Multi-agent | ✅ Complete — 253 tests green |
 | Phase 6 — Deployment & Triggers | Not started |
 | Phase 7 — Auth & Security | Not started |
 

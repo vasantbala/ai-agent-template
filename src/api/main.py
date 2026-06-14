@@ -12,6 +12,7 @@ from api.routes.agent import router as agent_router
 from api.routes.health import router as health_router
 from api.routes.stream import router as stream_router
 from api.routes.webhook import router as webhook_router
+from auth.middleware import require_auth
 from triggers.scheduler import start_scheduler
 from config.prompts import PromptManager
 from config.settings import get_settings
@@ -75,15 +76,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    from fastapi import Depends
+
     app = FastAPI(
         title="AI Agent Template",
         version="1.0.0",
         lifespan=lifespan,
     )
-    app.include_router(health_router)
-    app.include_router(agent_router)
-    app.include_router(stream_router)
-    app.include_router(webhook_router)
+    app.include_router(health_router)  # no auth — uptime checks must pass without a key
+    app.include_router(agent_router, dependencies=[Depends(require_auth)])
+    app.include_router(stream_router, dependencies=[Depends(require_auth)])
+    app.include_router(webhook_router, dependencies=[Depends(require_auth)])
     return app
 
 

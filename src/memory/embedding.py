@@ -13,10 +13,14 @@ class EmbeddingClient:
         llm_provider: str | None = None,
         llm_base_url: str | None = None,
     ) -> None:
-        self._model = self._resolve_model(settings.model, llm_provider)
+        # Only apply the LLM provider prefix when no dedicated embedding API key is
+        # configured — a separate key means a different provider whose model names
+        # must not be prefixed with the LLM provider.
+        has_own_key = settings.api_key is not None
+        self._model = self._resolve_model(settings.model, llm_provider if not has_own_key else None)
         self._api_key = settings.api_key or llm_api_key
         self._dimensions = settings.dimensions
-        self._base_url = llm_base_url
+        self._base_url = llm_base_url if not has_own_key else None
 
     @staticmethod
     def _resolve_model(model: str, provider: str | None) -> str:

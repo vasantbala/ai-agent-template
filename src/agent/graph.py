@@ -10,6 +10,7 @@ from agent.nodes.hitl import human_approval
 from agent.nodes.reason import reason
 from agent.state import AgentState
 from config.prompts import PromptManager
+from agent.registry import AgentRegistry
 from config.settings import AgentConfig, MemoryConfig, ReliabilityConfig
 from llm.client import LLMClient
 from reliability.context import ContextManager
@@ -53,6 +54,7 @@ def build_graph(
     reliability: ReliabilityConfig | None = None,
     memory_store: MemoryStore | None = None,
     memory_config: MemoryConfig | None = None,
+    agent_registry: AgentRegistry | None = None,
 ) -> Any:
     rel = reliability or ReliabilityConfig()
     mem_cfg = memory_config or MemoryConfig()
@@ -65,18 +67,19 @@ def build_graph(
         return await retrieve_memories(state, memory_store, mem_cfg)
 
     async def _reason(state: AgentState) -> dict[str, Any]:
-        tools = await registry.get_all_tools()
+        mcp_tools = await registry.get_all_tools()
+        sub_agent_tools = agent_registry.tool_schemas() if agent_registry else []
         return await reason(
             state,
             llm,
-            tools,
+            mcp_tools + sub_agent_tools,
             agent_config.max_iterations,
             context_mgr=context_mgr,
             max_tokens=rel.max_tokens_per_run,
         )
 
     async def _execute(state: AgentState) -> dict[str, Any]:
-        return await execute(state, registry)
+        return await execute(state, registry, agent_registry)
 
     builder = StateGraph(AgentState)
     builder.add_node("retrieve_memories", _retrieve_memories)

@@ -7,7 +7,9 @@ from agent.state import AgentState, Task
 from agent.nodes.reason import reason
 from agent.nodes.execute import execute
 from agent.graph import _should_execute, build_graph
-from config.settings import AgentConfig, LLMSettings, ReliabilityConfig
+from agent.registry import AgentRegistry
+from agent.subagent import SubAgentClient
+from config.settings import AgentConfig, LLMSettings, ReliabilityConfig, SubAgentConfig
 from llm.client import LLMClient
 from tools.registry import MCPRegistry
 from config.prompts import PromptManager
@@ -161,6 +163,71 @@ class TestExecuteNode:
         assert len(result["messages"]) == 1
         assert isinstance(result["messages"][0], ToolMessage)
         assert result["messages"][0].content == "tool output"
+
+
+class TestExecuteNodeSubAgent:
+    def make_agent_registry(self, name: str = "worker", output: str = "sub result") -> AgentRegistry:
+        cfg = SubAgentConfig(name=name, url="http://localhost:8002", description="A worker")
+        reg = AgentRegistry([cfg])
+        mock_client = AsyncMock(spec=SubAgentClient)
+        mock_client.call.return_value = output
+        reg._clients[name] = mock_client
+        return reg
+
+    async def test_sub_agent_tool_routes_to_agent_registry(self):
+        mcp_registry = AsyncMock(spec=MCPRegistry)
+        agent_registry = self.make_agent_registry("worker")
+
+        task = Task(description="delegate", tool_name="call_worker", tool_args={"task": "do the work"})
+        state = make_state(tasks=[task], current_task_index=0)
+
+        result = await execute(state, mcp_registry, agent_registry)
+
+        mcp_registry.call_tool.assert_not_awaited()
+        assert result["tasks"][0].status == "completed"
+        assert result["tasks"][0].result == "sub result"
+
+    async def test_non_sub_agent_tool_routes_to_mcp_registry(self):
+        mcp_registry = AsyncMock(spec=MCPRegistry)
+        mcp_registry.call_tool.return_value = "mcp result"
+        agent_registry = self.make_agent_registry("worker")
+
+        task = Task(description="search", tool_name="read_file", tool_args={"path": "/tmp/f"})
+        state = make_state(tasks=[task], current_task_index=0)
+
+        result = await execute(state, mcp_registry, agent_registry)
+
+        mcp_registry.call_tool.assert_awaited_once()
+        assert result["tasks"][0].result == "mcp result"
+
+    async def test_none_agent_registry_falls_through_to_mcp(self):
+        mcp_registry = AsyncMock(spec=MCPRegistry)
+        mcp_registry.call_tool.return_value = "mcp result"
+
+        task = Task(description="search", tool_name="search", tool_args={})
+        state = make_state(tasks=[task], current_task_index=0)
+
+        result = await execute(state, mcp_registry, agent_registry=None)
+
+        mcp_registry.call_tool.assert_awaited_once()
+        assert result["tasks"][0].result == "mcp result"
+
+    async def test_sub_agent_call_passes_task_arg(self):
+        mcp_registry = AsyncMock(spec=MCPRegistry)
+        agent_registry = self.make_agent_registry("researcher")
+        mock_client = agent_registry._clients["researcher"]
+
+        task = Task(description="research", tool_name="call_researcher", tool_args={"task": "find info"})
+        state = make_state(tasks=[task], current_task_index=0, tenant_id="acme", user_id="alice")
+
+        await execute(state, mcp_registry, agent_registry)
+
+        mock_client.call.assert_awaited_once_with(
+            task="find info",
+            tenant_id="acme",
+            session_id=state.session_id,
+            user_id="alice",
+        )
 
 
 class TestBuildGraph:

@@ -1,14 +1,21 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import ToolMessage
 
 from agent.state import AgentState, Task
 from tools.registry import MCPRegistry
 
+if TYPE_CHECKING:
+    from agent.registry import AgentRegistry
 
-async def execute(state: AgentState, registry: MCPRegistry) -> dict[str, Any]:
+
+async def execute(
+    state: AgentState,
+    registry: MCPRegistry,
+    agent_registry: AgentRegistry | None = None,
+) -> dict[str, Any]:
     tasks = list(state.tasks)
     idx = state.current_task_index
 
@@ -19,7 +26,17 @@ async def execute(state: AgentState, registry: MCPRegistry) -> dict[str, Any]:
     task.status = "in_progress"
 
     try:
-        result = await registry.call_tool(task.tool_name or "", task.tool_args)
+        tool_name = task.tool_name or ""
+        if agent_registry and agent_registry.is_sub_agent_tool(tool_name):
+            client = agent_registry.get(tool_name)
+            result = await client.call(
+                task=task.tool_args.get("task", ""),
+                tenant_id=state.tenant_id,
+                session_id=state.session_id,
+                user_id=state.user_id,
+            )
+        else:
+            result = await registry.call_tool(tool_name, task.tool_args)
         task.status = "completed"
         task.result = result
     except Exception as exc:

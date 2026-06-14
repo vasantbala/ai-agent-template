@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from agent.graph import build_graph
+from agent.registry import AgentRegistry
 from api.routes.agent import router as agent_router
 from api.routes.health import router as health_router
 from config.prompts import PromptManager
@@ -35,6 +36,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.memory.enabled:
         await memory_store.ensure_collection(dimensions=settings.embedding.dimensions)
 
+    agent_registry = AgentRegistry(settings.agent.sub_agents)
+
     await registry.connect_all()
 
     async with AsyncSqliteSaver.from_conn_string("checkpoints.db") as checkpointer:
@@ -44,6 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             reliability=settings.reliability,
             memory_store=memory_store if settings.memory.enabled else None,
             memory_config=settings.memory,
+            agent_registry=agent_registry,
         )
 
         app.state.settings = settings

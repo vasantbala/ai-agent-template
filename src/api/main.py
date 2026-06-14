@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await memory_store.ensure_collection(dimensions=settings.embedding.dimensions)
 
     agent_registry = AgentRegistry(settings.agent.sub_agents)
+    audit_logger = AuditLogger(settings.audit)
 
     await registry.connect_all()
 
@@ -56,7 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             memory_config=settings.memory,
             agent_registry=agent_registry,
             cost_config=settings.cost,
-            audit_logger=app.state.audit_logger,
+            audit_logger=audit_logger,
         )
 
         app.state.settings = settings
@@ -69,7 +70,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.input_guardrail = InputGuardrail()
         app.state.output_guardrail = OutputGuardrail()
         app.state.pii_scrubber = PiiScrubber(settings.pii)
-        app.state.audit_logger = AuditLogger(settings.audit)
+        app.state.audit_logger = audit_logger
 
         scheduler = start_scheduler(app, settings.schedule)
 

@@ -2,8 +2,8 @@
 
 ## Current Status
 
-**Phase:** Phase 1 complete — ready to design Phase 2  
-**Last updated:** 2026-06-13
+**Phase:** Phase 8 complete — all 8 phases done  
+**Last updated:** 2026-06-14
 
 ## What's Done
 
@@ -85,6 +85,17 @@ Graph wiring fully complete:
 
 **Phase 5 complete — 253 unit+integration tests passing**
 
+## Phase 8 (Demo UI)
+
+- [x] Component 1: POST /v1/kb/seed endpoint — 8 tests green
+- [x] Component 2: Gradio app (demo/app.py) — streaming chat, KB seeder tab, health check
+- [x] Component 3: Docker Compose overlay (docker-compose.demo.yml) — demo service on port 7860
+- [x] Component 4: Docs updated — Gradio section added to both example walkthroughs
+
+**Phase 8 complete — demo accessible at http://localhost:7860 via overlay**
+
+---
+
 ## What's Next (Phase 6)
 
 - [x] Component 1: CostConfig + ScheduleConfig in settings — 63 config tests green
@@ -117,7 +128,7 @@ Graph wiring fully complete:
 | Phase 5 — Multi-agent | ✅ Complete — 253 tests green |
 | Phase 6 — Deployment & Triggers | ✅ Complete — 284 tests green |
 | Phase 7 — Auth & Security | ✅ Complete — 343 tests green |
-| Phase 8 — Demo UI | Not started |
+| Phase 8 — Demo UI | ✅ Complete — Gradio UI, Docker overlay, docs updated |
 
 ## Deferred
 

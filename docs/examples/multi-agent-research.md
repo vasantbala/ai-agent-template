@@ -169,6 +169,20 @@ docker compose -f docker-compose.research.yml up --build
 
 ## Querying
 
+### Gradio demo UI (optional)
+
+```bash
+docker compose -f docker-compose.yml \
+               -f docker-compose.research.yml \
+               -f docker-compose.demo.yml up --build
+```
+
+Open **http://localhost:7860**. The Config sidebar should point at `http://localhost:8001` (the parent agent's mapped port). The researcher sub-agent is called internally — you only interact with the parent.
+
+> The demo UI is for development and showcasing only. It is not included in the production `docker-compose.yml`.
+
+---
+
 ### curl
 
 ```bash

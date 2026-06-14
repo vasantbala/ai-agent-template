@@ -174,6 +174,20 @@ uv run uvicorn api.main:app --reload
 
 ## Querying
 
+### Gradio demo UI (optional)
+
+The fastest way to test the agent interactively — no curl required.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build
+```
+
+Open **http://localhost:7860**. Set the Tenant ID to `acme` in the Config sidebar and start chatting. Use the **KB Seeder** tab to paste documents directly into Qdrant without running the seed script.
+
+> The demo UI is for development and showcasing only. It is not included in the production `docker-compose.yml`.
+
+---
+
 ### Without auth (development)
 
 ```bash

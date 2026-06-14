@@ -1,0 +1,26 @@
+# Demo UI overlay — adds the Gradio interface alongside the core services.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build
+#
+# The demo UI is available at http://localhost:7860.
+# The agent API remains at http://localhost:8001 (mapped from container :8000).
+#
+# To pass an API key to the UI (when AUTH__ENABLED=true on the agent):
+#   AGENT_API_KEY=sk-agent-abc123 docker compose \
+#     -f docker-compose.yml -f docker-compose.demo.yml up --build
+
+services:
+  demo:
+    build:
+      context: ./demo
+      dockerfile: Dockerfile
+    ports:
+      - "7860:7860"
+    environment:
+      # Points at the agent service defined in docker-compose.yml
+      AGENT_URL: http://agent:8000
+      AGENT_API_KEY: ${AGENT_API_KEY:-}
+    depends_on:
+      - agent
+    restart: unless-stopped

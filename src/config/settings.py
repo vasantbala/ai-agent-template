@@ -63,6 +63,18 @@ class ReliabilityConfig(BaseModel):
     hitl_enabled: bool = False
 
 
+class CostConfig(BaseModel):
+    enabled: bool = True
+
+
+class ScheduleConfig(BaseModel):
+    enabled: bool = False
+    cron: str = "0 9 * * *"
+    input: str = ""
+    tenant_id: str = ""
+    session_id_prefix: str = "scheduled"
+
+
 class EvalConfig(BaseModel):
     enabled: bool = False
     metrics: list[Literal["correctness", "faithfulness", "relevancy"]] = ["correctness"]
@@ -97,6 +109,8 @@ class Settings(BaseSettings):
     embedding: EmbeddingSettings = EmbeddingSettings()
     memory: MemoryConfig = MemoryConfig()
     eval: EvalConfig = EvalConfig()
+    cost: CostConfig = CostConfig()
+    schedule: ScheduleConfig = ScheduleConfig()
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",

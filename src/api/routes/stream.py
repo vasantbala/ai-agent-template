@@ -33,8 +33,10 @@ async def stream(request: Request, body: AgentRequest) -> StreamingResponse:
 
     app_state = request.app.state
 
+    scrubbed_input = app_state.pii_scrubber.scrub(body.input)
+
     try:
-        app_state.input_guardrail.validate(body.input)
+        app_state.input_guardrail.validate(scrubbed_input)
     except GuardrailViolation as exc:
         from fastapi import HTTPException
         raise HTTPException(status_code=422, detail=str(exc))
@@ -46,7 +48,7 @@ async def stream(request: Request, body: AgentRequest) -> StreamingResponse:
         user_id=body.user_id,
         messages=[
             SystemMessage(content=system_prompt),
-            HumanMessage(content=body.input),
+            HumanMessage(content=scrubbed_input),
         ],
     )
     config = {"configurable": {"thread_id": body.session_id}}

@@ -13,6 +13,7 @@ from api.routes.health import router as health_router
 from api.routes.stream import router as stream_router
 from api.routes.webhook import router as webhook_router
 from auth.middleware import require_auth
+from security.pii import PiiScrubber
 from triggers.scheduler import start_scheduler
 from config.prompts import PromptManager
 from config.settings import get_settings
@@ -64,6 +65,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.memory_store = memory_store if settings.memory.enabled else None
         app.state.input_guardrail = InputGuardrail()
         app.state.output_guardrail = OutputGuardrail()
+        app.state.pii_scrubber = PiiScrubber(settings.pii)
 
         scheduler = start_scheduler(app, settings.schedule)
 

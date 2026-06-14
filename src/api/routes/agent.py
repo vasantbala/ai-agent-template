@@ -24,8 +24,10 @@ def _extract_run_summary(state: AgentState) -> str:
 async def run(request: Request, body: AgentRequest) -> AgentResponse:
     app_state = request.app.state
 
+    scrubbed_input = app_state.pii_scrubber.scrub(body.input)
+
     try:
-        app_state.input_guardrail.validate(body.input)
+        app_state.input_guardrail.validate(scrubbed_input)
     except GuardrailViolation as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
@@ -37,7 +39,7 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
             graph=app_state.graph,
             tenant_id=body.tenant_id,
             session_id=body.session_id,
-            user_input=body.input,
+            user_input=scrubbed_input,
             system_prompt=system_prompt,
             user_id=body.user_id,
             callbacks=[handler],
@@ -63,7 +65,8 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
                 pass  # memory store failure must never break the response
 
     ai_messages = [m for m in final_state.messages if isinstance(m, AIMessage)]
-    output = ai_messages[-1].content if ai_messages else ""
+    raw_output = ai_messages[-1].content if ai_messages else ""
+    output = app_state.pii_scrubber.scrub(raw_output if isinstance(raw_output, str) else "")
 
     completed_tasks = [t for t in final_state.tasks if t.status == "completed"]
     tool_calls = [

@@ -2,7 +2,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, EvalConfig, _reset_settings
+from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, EvalConfig, SubAgentConfig, _reset_settings
 
 
 # Minimal valid env vars required by Settings
@@ -35,7 +35,7 @@ def base_env(monkeypatch):
 _OPTIONAL_ENV = [
     "LLM__BASE_URL", "LLM__MAX_TOKENS", "LLM__TEMPERATURE",
     "LANGFUSE__HOST",
-    "AGENT__NAME", "AGENT__VERSION", "AGENT__PROMPT_VERSION", "AGENT__MAX_ITERATIONS",
+    "AGENT__NAME", "AGENT__VERSION", "AGENT__PROMPT_VERSION", "AGENT__MAX_ITERATIONS", "AGENT__SUB_AGENTS",
     "ENVIRONMENT", "MCP_SERVERS",
     "RELIABILITY__MAX_TOKENS_PER_RUN", "RELIABILITY__MCP_RETRY_ATTEMPTS",
     "RELIABILITY__MCP_RETRY_BASE_DELAY", "RELIABILITY__CIRCUIT_BREAKER_FAILURE_THRESHOLD",
@@ -324,3 +324,40 @@ class TestEvalConfig:
     def test_eval_invalid_metric_raises(self):
         with pytest.raises(Exception):
             EvalConfig(metrics=["hallucination"])
+
+
+class TestSubAgentConfig:
+    def test_sub_agents_default_empty(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.agent.sub_agents == []
+
+    def test_sub_agents_parsed_from_env(self, monkeypatch):
+        agents = [{"name": "researcher", "url": "http://localhost:8002", "description": "Does research"}]
+        s = make_settings(monkeypatch, {"AGENT__SUB_AGENTS": json.dumps(agents)})
+        assert len(s.agent.sub_agents) == 1
+        assert s.agent.sub_agents[0].name == "researcher"
+        assert s.agent.sub_agents[0].url == "http://localhost:8002"
+        assert s.agent.sub_agents[0].description == "Does research"
+
+    def test_sub_agent_default_timeout(self, monkeypatch):
+        agents = [{"name": "worker", "url": "http://localhost:8003", "description": "Does work"}]
+        s = make_settings(monkeypatch, {"AGENT__SUB_AGENTS": json.dumps(agents)})
+        assert s.agent.sub_agents[0].timeout == 30.0
+
+    def test_sub_agent_custom_timeout(self, monkeypatch):
+        agents = [{"name": "slow", "url": "http://localhost:8004", "description": "Slow agent", "timeout": 60.0}]
+        s = make_settings(monkeypatch, {"AGENT__SUB_AGENTS": json.dumps(agents)})
+        assert s.agent.sub_agents[0].timeout == 60.0
+
+    def test_multiple_sub_agents_parsed(self, monkeypatch):
+        agents = [
+            {"name": "a", "url": "http://localhost:8002", "description": "Agent A"},
+            {"name": "b", "url": "http://localhost:8003", "description": "Agent B"},
+        ]
+        s = make_settings(monkeypatch, {"AGENT__SUB_AGENTS": json.dumps(agents)})
+        assert len(s.agent.sub_agents) == 2
+
+    def test_sub_agent_config_standalone(self):
+        c = SubAgentConfig(name="x", url="http://localhost:9000", description="test agent")
+        assert c.name == "x"
+        assert c.timeout == 30.0

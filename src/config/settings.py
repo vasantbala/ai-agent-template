@@ -38,11 +38,19 @@ class MCPServerConfig(BaseModel):
         return self
 
 
+class SubAgentConfig(BaseModel):
+    name: str
+    url: str
+    description: str
+    timeout: float = 30.0
+
+
 class AgentConfig(BaseModel):
     name: str = "ai-agent"
     version: str = "1.0.0"
     prompt_version: str = "v1"  # maps to prompts/{version}/system.md
     max_iterations: int = 10
+    sub_agents: list[SubAgentConfig] = []
 
 
 class ReliabilityConfig(BaseModel):

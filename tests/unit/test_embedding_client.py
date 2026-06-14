@@ -60,6 +60,7 @@ class TestEmbeddingClient:
             client = EmbeddingClient(
                 make_settings(model="nvidia/llama-nemotron-embed-vl-1b-v2:free"),
                 llm_api_key="sk-or-...",
+                llm_provider="openrouter",
                 llm_base_url="https://openrouter.ai/api/v1",
             )
             await client.embed("test")
@@ -71,3 +72,27 @@ class TestEmbeddingClient:
             client = EmbeddingClient(make_settings(), llm_api_key="sk-llm")
             await client.embed("test")
         assert "api_base" not in mock_embed.call_args.kwargs
+
+    def test_openrouter_model_gets_prefixed(self):
+        client = EmbeddingClient(
+            make_settings(model="nvidia/llama-nemotron-embed-vl-1b-v2:free"),
+            llm_api_key="sk-or-...",
+            llm_provider="openrouter",
+        )
+        assert client._model == "openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free"
+
+    def test_already_prefixed_model_not_double_prefixed(self):
+        client = EmbeddingClient(
+            make_settings(model="openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free"),
+            llm_api_key="sk-or-...",
+            llm_provider="openrouter",
+        )
+        assert client._model == "openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free"
+
+    def test_openai_model_not_prefixed(self):
+        client = EmbeddingClient(
+            make_settings(model="text-embedding-3-small"),
+            llm_api_key="sk-...",
+            llm_provider="openai",
+        )
+        assert client._model == "text-embedding-3-small"

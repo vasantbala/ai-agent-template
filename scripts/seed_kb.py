@@ -24,7 +24,7 @@ def load_markdown_files(directory: Path) -> list[tuple[str, str]]:
 
 async def seed():
     settings = get_settings()
-    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key, llm_base_url=settings.llm.base_url)
+    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key, llm_provider=settings.llm.provider, llm_base_url=settings.llm.base_url)
     store = MemoryStore(settings.memory, embedder)
 
     await store.ensure_collection(dimensions=settings.embedding.dimensions)

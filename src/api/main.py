@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     prompts = PromptManager(settings.agent.prompt_version)
     tracer = AgentTracer(settings.langfuse, settings.tenant_id)
 
-    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key)
+    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key, llm_base_url=settings.llm.base_url)
     memory_store = MemoryStore(settings.memory, embedder)
 
     if settings.memory.enabled:

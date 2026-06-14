@@ -53,3 +53,21 @@ class TestEmbeddingClient:
             client = EmbeddingClient(make_settings(), llm_api_key="sk-llm")
             await client.embed("my query")
         assert mock_embed.call_args.kwargs["input"] == ["my query"]
+
+    async def test_forwards_base_url_as_api_base(self):
+        with patch("memory.embedding.litellm.aembedding", new_callable=AsyncMock) as mock_embed:
+            mock_embed.return_value = make_embedding_response([0.0])
+            client = EmbeddingClient(
+                make_settings(model="nvidia/llama-nemotron-embed-vl-1b-v2:free"),
+                llm_api_key="sk-or-...",
+                llm_base_url="https://openrouter.ai/api/v1",
+            )
+            await client.embed("test")
+        assert mock_embed.call_args.kwargs["api_base"] == "https://openrouter.ai/api/v1"
+
+    async def test_no_api_base_when_base_url_not_set(self):
+        with patch("memory.embedding.litellm.aembedding", new_callable=AsyncMock) as mock_embed:
+            mock_embed.return_value = make_embedding_response([0.0])
+            client = EmbeddingClient(make_settings(), llm_api_key="sk-llm")
+            await client.embed("test")
+        assert "api_base" not in mock_embed.call_args.kwargs

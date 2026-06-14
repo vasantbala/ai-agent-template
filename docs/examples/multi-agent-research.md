@@ -306,6 +306,43 @@ The parent now has two tools: `call_researcher` and `call_writer`. It can use th
 
 ---
 
+## Scheduled runs
+
+The parent agent can run on a cron schedule without an external trigger — useful for a daily research digest that runs automatically every morning.
+
+Add these to `.env.parent`:
+
+```env
+SCHEDULE__ENABLED=true
+SCHEDULE__CRON="0 7 * * 1-5"    # weekdays at 07:00 UTC
+SCHEDULE__INPUT="Research the most important AI and machine learning developments from the past 24 hours. Produce a structured summary with key findings, notable model releases, and any significant industry news."
+SCHEDULE__TENANT_ID=research-system
+SCHEDULE__SESSION_ID_PREFIX=digest
+```
+
+When the parent agent starts, the scheduler fires at the configured time. Each run:
+
+1. Sends `SCHEDULE__INPUT` as the task
+2. The parent delegates to `call_researcher` as normal
+3. The researcher searches the web via Brave Search
+4. The synthesised digest is captured in a Langfuse trace tagged `research-system` with a session ID like `digest-a1b2c3`
+
+**No code changes are needed.** The schedule is entirely config-driven.
+
+**Retrieve the latest digest from Langfuse** by filtering traces with `session_id` starting with `digest-` and `tenant_id = research-system`, ordered by start time descending.
+
+**Cron expression examples:**
+
+| Expression | Schedule |
+|---|---|
+| `0 7 * * 1-5` | Weekdays at 07:00 UTC |
+| `0 */6 * * *` | Every 6 hours |
+| `0 9 * * 1` | Monday mornings at 09:00 |
+
+> The researcher sub-agent does not need its own schedule — it is invoked by the parent agent as a tool call during each scheduled run.
+
+---
+
 ## Observability
 
 Each layer traces independently to Langfuse:

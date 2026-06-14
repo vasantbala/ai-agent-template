@@ -14,6 +14,8 @@ def make_mock_app_state():
     """Returns a dict of mock dependencies to attach to app.state."""
     from guardrails.input import InputGuardrail
     from guardrails.output import OutputGuardrail
+    from config.settings import AuthConfig, PiiConfig
+    from security.pii import PiiScrubber
 
     mock_tracer = MagicMock()
     mock_tracer.callback_handler.return_value = MagicMock()
@@ -24,12 +26,15 @@ def make_mock_app_state():
 
     mock_settings = MagicMock()
     mock_settings.memory = MemoryConfig(enabled=False)
+    mock_settings.auth = AuthConfig(enabled=False)  # auth off in integration tests
+    mock_settings.cost = MagicMock(enabled=False)
 
     return {
         "tracer": mock_tracer,
         "prompts": mock_prompts,
         "input_guardrail": InputGuardrail(),
         "output_guardrail": OutputGuardrail(),
+        "pii_scrubber": PiiScrubber(PiiConfig(enabled=False)),
         "settings": mock_settings,
         "memory_store": None,
     }

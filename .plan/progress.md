@@ -89,7 +89,9 @@ Graph wiring fully complete:
 
 ## Deferred
 
-Manual Phase 2 verification (resume from checkpoint, HITL approval flow, budget exceeded demo) — deferred to after Phase 3. All automated tests pass.
+- Manual Phase 2 verification (resume from checkpoint, HITL approval flow, budget exceeded demo)
+- `compare_evals.py` requires a `prompts/v2/system.md` to exist before running — deferred to Phase 7 (or whenever a second prompt version is authored). Error: `FileNotFoundError: System prompt not found for version 'v2'`.
+- Phase 4 eval suite intermittent: GEval step-generation LLM call returns empty content on some runs (LiteLLM "Provider List" warning). Mitigation in place (`evaluation_steps` pre-specified, `_extract_json` extractor). Full resolution deferred to Phase 7 eval hardening.
 
 ## Blockers
 

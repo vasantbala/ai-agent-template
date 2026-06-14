@@ -12,6 +12,7 @@ from api.routes.agent import router as agent_router
 from api.routes.health import router as health_router
 from api.routes.stream import router as stream_router
 from api.routes.webhook import router as webhook_router
+from triggers.scheduler import start_scheduler
 from config.prompts import PromptManager
 from config.settings import get_settings
 from guardrails.input import InputGuardrail
@@ -63,7 +64,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.input_guardrail = InputGuardrail()
         app.state.output_guardrail = OutputGuardrail()
 
+        scheduler = start_scheduler(app, settings.schedule)
+
         yield
+
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
 
     await registry.disconnect_all()
 

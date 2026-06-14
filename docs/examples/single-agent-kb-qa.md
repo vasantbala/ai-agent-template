@@ -164,6 +164,73 @@ Run it:
 uv run python scripts/seed_kb.py
 ```
 
+#### Loading from a directory of Markdown files
+
+If your knowledge base lives in `.md` files (docs, wikis, READMEs), replace the hardcoded `DOCUMENTS` list with a directory loader:
+
+```python
+import asyncio
+from pathlib import Path
+from config.settings import get_settings
+from memory.embedding import EmbeddingClient
+from memory.store import MemoryStore, Memory
+
+DOCS_DIR = Path("docs")   # directory containing .md files
+TENANT_ID = "acme"
+
+
+def load_markdown_files(directory: Path) -> list[tuple[str, str]]:
+    """Return (filename, text) pairs for every .md file found recursively."""
+    results = []
+    for path in sorted(directory.rglob("*.md")):
+        text = path.read_text(encoding="utf-8").strip()
+        if text:
+            results.append((path.name, text))
+    return results
+
+
+async def seed():
+    settings = get_settings()
+    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key)
+    store = MemoryStore(settings.memory, embedder)
+
+    await store.ensure_collection(dimensions=settings.embedding.dimensions)
+
+    files = load_markdown_files(DOCS_DIR)
+    if not files:
+        print(f"No .md files found under {DOCS_DIR}")
+        return
+
+    for i, (filename, text) in enumerate(files):
+        await store.store(Memory(
+            text=text,
+            tenant_id=TENANT_ID,
+            session_id="seed",
+        ))
+        print(f"Seeded [{i + 1}/{len(files)}]: {filename} ({len(text)} chars)")
+
+    print(f"\nDone — {len(files)} files stored in Qdrant under tenant '{TENANT_ID}'")
+
+
+asyncio.run(seed())
+```
+
+```bash
+uv run python scripts/seed_kb.py
+```
+
+> **Large files:** Markdown files are stored as single documents. If a file is very long (thousands of tokens), retrieval quality degrades because the entire file competes as one chunk. Split large files into logical sections before seeding — headings (`## Section`) are natural split points. A simple splitter:
+>
+> ```python
+> import re
+>
+> def split_by_heading(text: str) -> list[str]:
+>     sections = re.split(r'\n(?=#{1,3} )', text.strip())
+>     return [s.strip() for s in sections if s.strip()]
+> ```
+>
+> Replace `await store.store(Memory(text=text, ...))` with a loop over `split_by_heading(text)` to store each section separately.
+
 ### 4. Start the agent
 
 ```bash

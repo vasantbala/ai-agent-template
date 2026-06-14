@@ -51,6 +51,7 @@ class AgentConfig(BaseModel):
     prompt_version: str = "v1"  # maps to prompts/{version}/system.md
     max_iterations: int = 10
     sub_agents: list[SubAgentConfig] = []
+    allowed_tools: list[str] = []  # empty = all tools permitted
 
 
 class ReliabilityConfig(BaseModel):
@@ -61,6 +62,26 @@ class ReliabilityConfig(BaseModel):
     circuit_breaker_reset_timeout: float = 60.0
     context_window_threshold: int = 6_000
     hitl_enabled: bool = False
+
+
+class AuthConfig(BaseModel):
+    enabled: bool = False
+    api_keys: list[str] = []
+    jwt_secret: str | None = None
+    jwt_algorithm: str = "HS256"
+
+
+class PiiConfig(BaseModel):
+    enabled: bool = False
+    patterns: list[Literal["email", "phone", "ssn", "credit_card", "ip_address"]] = [
+        "email", "phone", "ssn", "credit_card"
+    ]
+    replacement: str = "[REDACTED]"
+
+
+class AuditConfig(BaseModel):
+    enabled: bool = False
+    log_path: str = "audit.log"
 
 
 class CostConfig(BaseModel):
@@ -108,6 +129,9 @@ class Settings(BaseSettings):
     reliability: ReliabilityConfig = ReliabilityConfig()
     embedding: EmbeddingSettings = EmbeddingSettings()
     memory: MemoryConfig = MemoryConfig()
+    auth: AuthConfig = AuthConfig()
+    pii: PiiConfig = PiiConfig()
+    audit: AuditConfig = AuditConfig()
     eval: EvalConfig = EvalConfig()
     cost: CostConfig = CostConfig()
     schedule: ScheduleConfig = ScheduleConfig()

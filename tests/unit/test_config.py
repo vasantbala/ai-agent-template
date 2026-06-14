@@ -2,7 +2,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, EvalConfig, SubAgentConfig, CostConfig, ScheduleConfig, _reset_settings
+from config.settings import Settings, MCPServerConfig, ReliabilityConfig, EmbeddingSettings, MemoryConfig, EvalConfig, SubAgentConfig, CostConfig, ScheduleConfig, AuthConfig, PiiConfig, AuditConfig, _reset_settings
 
 
 # Minimal valid env vars required by Settings
@@ -47,6 +47,10 @@ _OPTIONAL_ENV = [
     "EVAL__ENABLED", "EVAL__METRICS", "EVAL__THRESHOLD", "EVAL__MODEL", "EVAL__GOLDEN_DATASET_PATH",
     "COST__ENABLED",
     "SCHEDULE__ENABLED", "SCHEDULE__CRON", "SCHEDULE__INPUT", "SCHEDULE__TENANT_ID", "SCHEDULE__SESSION_ID_PREFIX",
+    "AUTH__ENABLED", "AUTH__API_KEYS", "AUTH__JWT_SECRET", "AUTH__JWT_ALGORITHM",
+    "PII__ENABLED", "PII__PATTERNS", "PII__REPLACEMENT",
+    "AUDIT__ENABLED", "AUDIT__LOG_PATH",
+    "AGENT__ALLOWED_TOOLS",
 ]
 
 
@@ -422,3 +426,107 @@ class TestScheduleConfig:
         assert c.cron == "*/5 * * * *"
         assert c.input == "ping"
         assert c.tenant_id == "dev"
+
+
+class TestAuthConfig:
+    def test_auth_disabled_by_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.auth.enabled is False
+
+    def test_auth_enabled_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"AUTH__ENABLED": "true"})
+        assert s.auth.enabled is True
+
+    def test_auth_api_keys_empty_by_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.auth.api_keys == []
+
+    def test_auth_api_keys_parsed_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"AUTH__API_KEYS": '["key-a", "key-b"]'})
+        assert s.auth.api_keys == ["key-a", "key-b"]
+
+    def test_auth_jwt_secret_none_by_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.auth.jwt_secret is None
+
+    def test_auth_jwt_secret_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"AUTH__JWT_SECRET": "super-secret"})
+        assert s.auth.jwt_secret == "super-secret"
+
+    def test_auth_jwt_algorithm_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.auth.jwt_algorithm == "HS256"
+
+    def test_auth_config_standalone(self):
+        c = AuthConfig(enabled=True, api_keys=["k1"], jwt_secret="s")
+        assert c.enabled is True
+        assert "k1" in c.api_keys
+        assert c.jwt_secret == "s"
+
+
+class TestPiiConfig:
+    def test_pii_disabled_by_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.pii.enabled is False
+
+    def test_pii_enabled_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"PII__ENABLED": "true"})
+        assert s.pii.enabled is True
+
+    def test_pii_default_patterns(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert "email" in s.pii.patterns
+        assert "phone" in s.pii.patterns
+        assert "ssn" in s.pii.patterns
+        assert "credit_card" in s.pii.patterns
+
+    def test_pii_patterns_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"PII__PATTERNS": '["email", "ip_address"]'})
+        assert s.pii.patterns == ["email", "ip_address"]
+
+    def test_pii_replacement_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.pii.replacement == "[REDACTED]"
+
+    def test_pii_replacement_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"PII__REPLACEMENT": "***"})
+        assert s.pii.replacement == "***"
+
+    def test_pii_config_standalone(self):
+        c = PiiConfig(enabled=True, patterns=["ssn"], replacement="<PII>")
+        assert c.enabled is True
+        assert c.patterns == ["ssn"]
+        assert c.replacement == "<PII>"
+
+
+class TestAuditConfig:
+    def test_audit_disabled_by_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.audit.enabled is False
+
+    def test_audit_enabled_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"AUDIT__ENABLED": "true"})
+        assert s.audit.enabled is True
+
+    def test_audit_log_path_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.audit.log_path == "audit.log"
+
+    def test_audit_log_path_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"AUDIT__LOG_PATH": "/var/log/agent-audit.log"})
+        assert s.audit.log_path == "/var/log/agent-audit.log"
+
+    def test_audit_config_standalone(self):
+        c = AuditConfig(enabled=True, log_path="/tmp/audit.log")
+        assert c.enabled is True
+        assert c.log_path == "/tmp/audit.log"
+
+
+class TestAllowedTools:
+    def test_allowed_tools_empty_by_default(self, monkeypatch):
+        s = make_settings(monkeypatch)
+        assert s.agent.allowed_tools == []
+
+    def test_allowed_tools_parsed_from_env(self, monkeypatch):
+        s = make_settings(monkeypatch, {"AGENT__ALLOWED_TOOLS": '["read_file", "search"]'})
+        assert s.agent.allowed_tools == ["read_file", "search"]

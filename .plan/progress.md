@@ -85,6 +85,16 @@ Graph wiring fully complete:
 
 **Phase 5 complete — 253 unit+integration tests passing**
 
+## What's Next (Phase 6)
+
+- [x] Component 1: CostConfig + ScheduleConfig in settings — 63 config tests green
+- [x] Component 2: cost_usd in AgentState + reason node + AgentResponse + Langfuse score — 263 unit tests green
+- [x] Component 3: Streaming endpoint POST /v1/agent/stream (SSE) — 6 new tests, 269 unit tests green
+- [x] Component 4: Webhook trigger POST /v1/triggers/webhook (202 + BackgroundTask) — 9 new tests, 278 unit tests green
+- [x] Component 5: Scheduled runs via APScheduler AsyncIOScheduler — 6 new tests, 284 unit tests green
+
+**Phase 6 complete — 284 unit tests passing**
+
 ## Phase Completion Status
 
 | Phase | Status |
@@ -94,7 +104,7 @@ Graph wiring fully complete:
 | Phase 3 — Memory | ✅ Complete — 184 tests green |
 | Phase 4 — Evals & Quality | ✅ Complete — 223 tests green |
 | Phase 5 — Multi-agent | ✅ Complete — 253 tests green |
-| Phase 6 — Deployment & Triggers | Not started |
+| Phase 6 — Deployment & Triggers | ✅ Complete — 284 tests green |
 | Phase 7 — Auth & Security | Not started |
 
 ## Deferred

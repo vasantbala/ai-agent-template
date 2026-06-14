@@ -96,3 +96,13 @@ class TestEmbeddingClient:
             llm_provider="openai",
         )
         assert client._model == "text-embedding-3-small"
+
+    def test_anthropic_provider_does_not_prefix_embedding_model(self):
+        # Anthropic has no embedding models — prefixing would route the call to
+        # Anthropic's API and fail. OpenAI embedding models must stay unprefixed.
+        client = EmbeddingClient(
+            make_settings(model="text-embedding-3-small"),
+            llm_api_key="sk-ant-...",
+            llm_provider="anthropic",
+        )
+        assert client._model == "text-embedding-3-small"

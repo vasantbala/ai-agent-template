@@ -12,16 +12,21 @@ from config.settings import LangfuseSettings
 
 class AgentTracer:
     def __init__(self, settings: LangfuseSettings, tenant_id: str):
-        # langfuse v4 CallbackHandler picks up credentials from env vars
-        os.environ["LANGFUSE_PUBLIC_KEY"] = settings.public_key
-        os.environ["LANGFUSE_SECRET_KEY"] = settings.secret_key
-        os.environ["LANGFUSE_HOST"] = settings.host
-
+        self._enabled = settings.enabled
         self._settings = settings
         self._tenant_id = tenant_id
 
-    def callback_handler(self, session_id: str) -> CallbackHandler:
-        """Returns a LangGraph callback handler that auto-traces every node and LLM call."""
+        if settings.enabled:
+            os.environ["LANGFUSE_PUBLIC_KEY"] = settings.public_key
+            os.environ["LANGFUSE_SECRET_KEY"] = settings.secret_key
+            os.environ["LANGFUSE_HOST"] = settings.host
+        else:
+            os.environ["LANGFUSE_TRACING_ENABLED"] = "false"
+
+    def callback_handler(self, session_id: str) -> CallbackHandler | None:
+        """Returns a LangGraph callback handler, or None when Langfuse is disabled."""
+        if not self._enabled:
+            return None
         tc = TraceContext(
             session_id=session_id,
             user_id=self._tenant_id,
@@ -36,7 +41,8 @@ class AgentTracer:
         value: float,
         comment: str | None = None,
     ) -> None:
-        """Write an eval score back to Langfuse so it appears alongside the trace."""
+        if not self._enabled:
+            return
         get_client().create_score(
             trace_id=trace_id,
             name=name,
@@ -45,4 +51,6 @@ class AgentTracer:
         )
 
     def flush(self) -> None:
+        if not self._enabled:
+            return
         get_client().flush()

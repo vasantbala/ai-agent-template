@@ -24,11 +24,14 @@ class EmbeddingClient:
 
     @staticmethod
     def _resolve_model(model: str, provider: str | None) -> str:
-        """Prefix the model name with the provider so LiteLLM can route it."""
+        """Prefix the model name with the provider so LiteLLM can route it.
+
+        Only OpenRouter needs the prefix — Anthropic has no embedding models,
+        so inheriting 'anthropic/' would send a text-embedding-* call to Anthropic
+        and fail. OpenAI models (text-embedding-*) work without any prefix.
+        """
         if provider == "openrouter" and not model.startswith("openrouter/"):
             return f"openrouter/{model}"
-        if provider == "anthropic" and not model.startswith("anthropic/"):
-            return f"anthropic/{model}"
         return model
 
     async def embed(self, text: str) -> list[float]:

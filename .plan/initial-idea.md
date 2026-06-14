@@ -102,3 +102,15 @@ A reusable, forkable template for building AI agents that can be configured or e
 - Per-tool permission scoping (restrict which MCP tools an agent can use)
 - Secret management integration (env vars today, Vault / AWS Secrets Manager later)
 - Audit log of every tool call and agent decision
+
+### Phase 8 — Demo UI
+*A Gradio-based chat interface for showcasing and manually testing the agent without writing curl commands.*
+
+- Chat panel with real-time SSE streaming — tokens appear as they arrive
+- Knowledge base seeder tab — paste or upload documents to seed Qdrant
+- Config sidebar — set agent URL, tenant ID, and API key at runtime
+- Session history — multi-turn conversation with session ID display
+- Ships as a standalone `demo/` directory with its own dependencies
+- `docker-compose.demo.yml` overlay adds the UI alongside the existing services
+- Core `docker-compose.yml` is unchanged — the demo is strictly opt-in
+- Examples in docs updated to mention Gradio as an optional testing surface

@@ -117,6 +117,7 @@ Graph wiring fully complete:
 | Phase 5 — Multi-agent | ✅ Complete — 253 tests green |
 | Phase 6 — Deployment & Triggers | ✅ Complete — 284 tests green |
 | Phase 7 — Auth & Security | ✅ Complete — 343 tests green |
+| Phase 8 — Demo UI | Not started |
 
 ## Deferred
 

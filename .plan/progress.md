@@ -95,6 +95,17 @@ Graph wiring fully complete:
 
 **Phase 6 complete — 284 unit tests passing**
 
+## What's Next (Phase 7)
+
+- [x] Component 1: AuthConfig + PiiConfig + AuditConfig + allowed_tools in settings — 85 config tests green
+- [x] Component 2: API key + JWT middleware, applied to all /v1/ routes — 11 auth tests green
+- [x] Component 3: PII scrubber (regex patterns), applied to input + output — 10 PII tests green
+- [x] Component 4: ToolPermissionGuard allowlist, enforced in execute node — 8 permission tests green
+- [x] Component 5+6: AuditLogger (tool_call + llm_decision events) wired into graph closures — 8 audit tests green
+- [x] Component 7: prompts/v2/system.md scaffolded; compare_evals.py now runs — deferred bug fixed
+
+**Phase 7 complete — 343 unit tests passing**
+
 ## Phase Completion Status
 
 | Phase | Status |
@@ -105,13 +116,12 @@ Graph wiring fully complete:
 | Phase 4 — Evals & Quality | ✅ Complete — 223 tests green |
 | Phase 5 — Multi-agent | ✅ Complete — 253 tests green |
 | Phase 6 — Deployment & Triggers | ✅ Complete — 284 tests green |
-| Phase 7 — Auth & Security | Not started |
+| Phase 7 — Auth & Security | ✅ Complete — 343 tests green |
 
 ## Deferred
 
 - Manual Phase 2 verification (resume from checkpoint, HITL approval flow, budget exceeded demo)
-- `compare_evals.py` requires a `prompts/v2/system.md` to exist before running — deferred to Phase 7 (or whenever a second prompt version is authored). Error: `FileNotFoundError: System prompt not found for version 'v2'`.
-- Phase 4 eval suite intermittent: GEval step-generation LLM call returns empty content on some runs (LiteLLM "Provider List" warning). Mitigation in place (`evaluation_steps` pre-specified, `_extract_json` extractor). Full resolution deferred to Phase 7 eval hardening.
+- Phase 4 eval suite intermittent: GEval step-generation LLM call returns empty content on some runs (LiteLLM "Provider List" warning). Mitigation in place (`evaluation_steps` pre-specified, `_extract_json` extractor). No further action planned.
 
 ## Blockers
 

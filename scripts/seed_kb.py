@@ -10,7 +10,6 @@ from memory.embedding import EmbeddingClient
 from memory.store import MemoryStore, Memory
 
 DOCS_DIR = Path("docs")   # directory containing .md files
-TENANT_ID = "docs-agent"
 
 
 def split_by_heading(text: str) -> list[str]:
@@ -33,6 +32,8 @@ def load_chunks(directory: Path) -> list[tuple[str, str]]:
 
 async def seed():
     settings = get_settings()
+    tenant_id = settings.tenant_id  # read from TENANT_ID in .env
+
     embedder = EmbeddingClient(
         settings.embedding,
         llm_api_key=settings.llm.api_key,
@@ -51,12 +52,12 @@ async def seed():
     for i, (label, chunk) in enumerate(chunks):
         await store.store(Memory(
             text=chunk,
-            tenant_id=TENANT_ID,
+            tenant_id=tenant_id,
             session_id="seed",
         ))
         print(f"Seeded [{i + 1}/{len(chunks)}]: {label} ({len(chunk)} chars)")
 
-    print(f"\nDone — {len(chunks)} chunks from {DOCS_DIR} stored under tenant '{TENANT_ID}'")
+    print(f"\nDone — {len(chunks)} chunks from {DOCS_DIR} stored under tenant '{tenant_id}'")
 
 
 asyncio.run(seed())

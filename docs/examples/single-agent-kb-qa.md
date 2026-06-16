@@ -134,11 +134,10 @@ DOCUMENTS = [
     "The agent SDK supports Python 3.11+ and integrates via HTTP/REST, making it consumable from any language or platform.",
 ]
 
-TENANT_ID = "acme"
-
-
 async def seed():
     settings = get_settings()
+    tenant_id = settings.tenant_id  # read from TENANT_ID in .env
+
     embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key, llm_provider=settings.llm.provider, llm_base_url=settings.llm.base_url)
     store = MemoryStore(settings.memory, embedder)
 
@@ -147,12 +146,12 @@ async def seed():
     for i, doc in enumerate(DOCUMENTS):
         await store.store(Memory(
             text=doc,
-            tenant_id=TENANT_ID,
+            tenant_id=tenant_id,
             session_id="seed",
         ))
         print(f"Seeded [{i + 1}/{len(DOCUMENTS)}]: {doc[:60]}...")
 
-    print(f"\nDone — {len(DOCUMENTS)} documents stored in Qdrant under tenant '{TENANT_ID}'")
+    print(f"\nDone — {len(DOCUMENTS)} documents stored in Qdrant under tenant '{tenant_id}'")
 
 
 asyncio.run(seed())
@@ -176,9 +175,6 @@ from memory.embedding import EmbeddingClient
 from memory.store import MemoryStore, Memory
 
 DOCS_DIR = Path("docs")   # directory containing .md files
-TENANT_ID = "acme"
-
-
 def load_markdown_files(directory: Path) -> list[tuple[str, str]]:
     """Return (filename, text) pairs for every .md file found recursively."""
     results = []
@@ -191,6 +187,8 @@ def load_markdown_files(directory: Path) -> list[tuple[str, str]]:
 
 async def seed():
     settings = get_settings()
+    tenant_id = settings.tenant_id  # read from TENANT_ID in .env
+
     embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key, llm_provider=settings.llm.provider, llm_base_url=settings.llm.base_url)
     store = MemoryStore(settings.memory, embedder)
 
@@ -204,12 +202,12 @@ async def seed():
     for i, (filename, text) in enumerate(files):
         await store.store(Memory(
             text=text,
-            tenant_id=TENANT_ID,
+            tenant_id=tenant_id,
             session_id="seed",
         ))
         print(f"Seeded [{i + 1}/{len(files)}]: {filename} ({len(text)} chars)")
 
-    print(f"\nDone — {len(files)} files stored in Qdrant under tenant '{TENANT_ID}'")
+    print(f"\nDone — {len(files)} files stored in Qdrant under tenant '{tenant_id}'")
 
 
 asyncio.run(seed())

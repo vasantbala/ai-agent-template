@@ -34,7 +34,7 @@ def base_env(monkeypatch):
 # We clear these so that defaults and absence tests are reliable.
 _OPTIONAL_ENV = [
     "LLM__BASE_URL", "LLM__MAX_TOKENS", "LLM__TEMPERATURE",
-    "LANGFUSE__HOST",
+    "LANGFUSE__ENABLED", "LANGFUSE__HOST",
     "AGENT__NAME", "AGENT__VERSION", "AGENT__PROMPT_VERSION", "AGENT__MAX_ITERATIONS", "AGENT__SUB_AGENTS",
     "ENVIRONMENT", "MCP_SERVERS",
     "RELIABILITY__MAX_TOKENS_PER_RUN", "RELIABILITY__MCP_RETRY_ATTEMPTS",
@@ -265,7 +265,7 @@ class TestMemoryConfig:
         s = make_settings(monkeypatch)
         m = s.memory
         assert m.enabled is False
-        assert m.scope == "user"
+        assert m.scope == "tenant"
         assert m.top_k == 5
         assert m.collection_name == "agent_memories"
         assert m.qdrant_url == "http://localhost:6333"

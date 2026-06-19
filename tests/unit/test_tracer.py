@@ -8,6 +8,7 @@ from observability.tracer import AgentTracer
 
 def make_settings() -> LangfuseSettings:
     return LangfuseSettings(
+        enabled=True,
         public_key="pk-test",
         secret_key="sk-test",
         host="https://us.cloud.langfuse.com",

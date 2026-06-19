@@ -118,11 +118,6 @@ Create a seed script `scripts/seed_kb.py`:
 
 ```python
 import asyncio
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
 from config.settings import get_settings
 from memory.embedding import EmbeddingClient
 from memory.store import MemoryStore, Memory
@@ -139,12 +134,11 @@ DOCUMENTS = [
     "The agent SDK supports Python 3.11+ and integrates via HTTP/REST, making it consumable from any language or platform.",
 ]
 
-TENANT_ID = "acme"
-
-
 async def seed():
     settings = get_settings()
-    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key)
+    tenant_id = settings.tenant_id  # read from TENANT_ID in .env
+
+    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key, llm_provider=settings.llm.provider, llm_base_url=settings.llm.base_url)
     store = MemoryStore(settings.memory, embedder)
 
     await store.ensure_collection(dimensions=settings.embedding.dimensions)
@@ -152,12 +146,12 @@ async def seed():
     for i, doc in enumerate(DOCUMENTS):
         await store.store(Memory(
             text=doc,
-            tenant_id=TENANT_ID,
+            tenant_id=tenant_id,
             session_id="seed",
         ))
         print(f"Seeded [{i + 1}/{len(DOCUMENTS)}]: {doc[:60]}...")
 
-    print(f"\nDone — {len(DOCUMENTS)} documents stored in Qdrant under tenant '{TENANT_ID}'")
+    print(f"\nDone — {len(DOCUMENTS)} documents stored in Qdrant under tenant '{tenant_id}'")
 
 
 asyncio.run(seed())
@@ -175,19 +169,12 @@ If your knowledge base lives in `.md` files (docs, wikis, READMEs), replace the 
 
 ```python
 import asyncio
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
 from config.settings import get_settings
 from memory.embedding import EmbeddingClient
 from memory.store import MemoryStore, Memory
 
 DOCS_DIR = Path("docs")   # directory containing .md files
-TENANT_ID = "acme"
-
-
 def load_markdown_files(directory: Path) -> list[tuple[str, str]]:
     """Return (filename, text) pairs for every .md file found recursively."""
     results = []
@@ -200,7 +187,9 @@ def load_markdown_files(directory: Path) -> list[tuple[str, str]]:
 
 async def seed():
     settings = get_settings()
-    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key)
+    tenant_id = settings.tenant_id  # read from TENANT_ID in .env
+
+    embedder = EmbeddingClient(settings.embedding, llm_api_key=settings.llm.api_key, llm_provider=settings.llm.provider, llm_base_url=settings.llm.base_url)
     store = MemoryStore(settings.memory, embedder)
 
     await store.ensure_collection(dimensions=settings.embedding.dimensions)
@@ -213,12 +202,12 @@ async def seed():
     for i, (filename, text) in enumerate(files):
         await store.store(Memory(
             text=text,
-            tenant_id=TENANT_ID,
+            tenant_id=tenant_id,
             session_id="seed",
         ))
         print(f"Seeded [{i + 1}/{len(files)}]: {filename} ({len(text)} chars)")
 
-    print(f"\nDone — {len(files)} files stored in Qdrant under tenant '{TENANT_ID}'")
+    print(f"\nDone — {len(files)} files stored in Qdrant under tenant '{tenant_id}'")
 
 
 asyncio.run(seed())
@@ -243,7 +232,7 @@ uv run python scripts/seed_kb.py
 ### 4. Start the agent
 
 ```bash
-uv run uvicorn api.main:app --reload
+PYTHONPATH=src uv run uvicorn api.main:app --reload
 ```
 
 ---

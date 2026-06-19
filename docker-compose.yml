@@ -2,8 +2,12 @@ services:
   agent:
     build: .
     ports:
-      - "8001:8000"
+      - "8000:8000"
     env_file: .env
+    environment:
+      # Override localhost URLs from .env with Docker service names
+      MEMORY__QDRANT_URL: http://qdrant:6333
+      LANGFUSE__HOST: http://langfuse:3000
     depends_on:
       langfuse:
         condition: service_healthy

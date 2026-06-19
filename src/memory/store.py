@@ -73,13 +73,13 @@ class MemoryStore:
         vector = await self._embedder.embed(query)
         query_filter = _build_filter(scope, tenant_id, session_id, user_id)
 
-        results = await self._client.search(
+        results = await self._client.query_points(
             collection_name=self._config.collection_name,
-            query_vector=vector,
+            query=vector,
             query_filter=query_filter,
             limit=top_k,
         )
-        return [r.payload["text"] for r in results if r.payload]
+        return [r.payload["text"] for r in results.points if r.payload]
 
 
 def _build_filter(

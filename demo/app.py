@@ -45,7 +45,7 @@ def _new_session_id() -> str:
 
 # ── chat ─────────────────────────────────────────────────────────────────────
 
-def chat(
+async def chat(
     message: str,
     history: list[dict],
     agent_url: str,
@@ -53,40 +53,25 @@ def chat(
     user_id: str,
     api_key: str,
     session_id: str,
-):
-    """Stream tokens from /v1/agent/stream and yield partial responses."""
-    url = f"{agent_url.rstrip('/')}/v1/agent/stream"
+) -> str:
+    """Call /v1/agent/run and return the full response."""
+    url = f"{agent_url.rstrip('/')}/v1/agent/run"
     body = {
         "tenant_id": tenant_id,
         "session_id": session_id,
         "user_id": user_id.strip() or None,
         "input": message,
     }
-
-    partial = ""
     try:
-        with httpx.Client(timeout=120) as client:
-            with client.stream("POST", url, headers=_headers(api_key), json=body) as resp:
-                if resp.status_code != 200:
-                    yield f"[Error {resp.status_code}] {resp.read().decode()}"
-                    return
-                for line in resp.iter_lines():
-                    if not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data == "[DONE]":
-                        break
-                    try:
-                        event = json.loads(data)
-                    except json.JSONDecodeError:
-                        continue
-                    if event.get("type") == "token" and event.get("content"):
-                        partial += event["content"]
-                        yield partial
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(url, headers=_headers(api_key), json=body)
+        if resp.status_code == 200:
+            return resp.json().get("output", "")
+        return f"[Error {resp.status_code}] {resp.text}"
     except httpx.ConnectError:
-        yield f"[Connection error] Could not reach agent at {agent_url}. Is it running?"
+        return f"[Connection error] Could not reach agent at {agent_url}. Is it running?"
     except Exception as exc:
-        yield f"[Error] {exc}"
+        return f"[Error] {exc}"
 
 
 # ── kb seeder ─────────────────────────────────────────────────────────────────
@@ -137,7 +122,7 @@ def check_health(agent_url: str) -> str:
 
 # ── layout ────────────────────────────────────────────────────────────────────
 
-with gr.Blocks(title="AI Agent Demo", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="AI Agent Demo") as demo:
     gr.Markdown("# AI Agent Demo")
 
     with gr.Row():
@@ -193,7 +178,6 @@ with gr.Blocks(title="AI Agent Demo", theme=gr.themes.Soft()) as demo:
                 with gr.Tab("Chat"):
                     chatbot = gr.ChatInterface(
                         fn=chat,
-                        type="messages",
                         additional_inputs=[
                             agent_url,
                             tenant_id,
@@ -202,9 +186,9 @@ with gr.Blocks(title="AI Agent Demo", theme=gr.themes.Soft()) as demo:
                             session_id,
                         ],
                         examples=[
-                            "What can you help me with?",
-                            "What is the return policy for annual plans?",
-                            "Which plan includes API access?",
+                            ["What can you help me with?"],
+                            ["What is the return policy for annual plans?"],
+                            ["Which plan includes API access?"],
                         ],
                     )
 
@@ -239,5 +223,5 @@ if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=7860,
-        show_api=False,
+        theme=gr.themes.Soft(),
     )

@@ -42,7 +42,7 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
             user_input=scrubbed_input,
             system_prompt=system_prompt,
             user_id=body.user_id,
-            callbacks=[handler],
+            callbacks=[handler] if handler else [],
         )
     except Exception as exc:
         app_state.tracer.flush()
@@ -80,7 +80,7 @@ async def run(request: Request, body: AgentRequest) -> AgentResponse:
         if t.tool_name
     ]
 
-    trace_id = str(handler.last_trace_id) if getattr(handler, "last_trace_id", None) else ""
+    trace_id = str(handler.last_trace_id) if handler and getattr(handler, "last_trace_id", None) else ""
     if trace_id and getattr(app_state.settings, "cost", None) and app_state.settings.cost.enabled:
         try:
             app_state.tracer.log_score(trace_id, "cost_usd", final_state.cost_usd)

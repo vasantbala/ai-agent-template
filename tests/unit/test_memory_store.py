@@ -24,6 +24,12 @@ def make_search_result(text: str, score: float = 0.9) -> MagicMock:
     return r
 
 
+def make_query_result(points: list) -> MagicMock:
+    result = MagicMock()
+    result.points = points
+    return result
+
+
 class TestMemory:
     def test_created_at_auto_populated(self):
         m = Memory(text="hello", tenant_id="t1", session_id="s1")
@@ -73,7 +79,7 @@ class TestMemoryStore:
         store._client.get_collections = AsyncMock()
         store._client.create_collection = AsyncMock()
         store._client.upsert = AsyncMock()
-        store._client.search = AsyncMock(return_value=[])
+        store._client.query_points = AsyncMock(return_value=make_query_result([]))
         return store, embedder
 
     async def test_ensure_collection_creates_when_missing(self):
@@ -112,10 +118,10 @@ class TestMemoryStore:
 
     async def test_retrieve_returns_text_list(self):
         store, embedder = self.make_store()
-        store._client.search.return_value = [
+        store._client.query_points.return_value = make_query_result([
             make_search_result("Paris is the capital."),
             make_search_result("France is in Europe."),
-        ]
+        ])
 
         results = await store.retrieve("capital of France", "t1", "user", top_k=5)
 
@@ -124,26 +130,26 @@ class TestMemoryStore:
 
     async def test_retrieve_passes_top_k(self):
         store, _ = self.make_store()
-        store._client.search.return_value = []
+        store._client.query_points.return_value = make_query_result([])
 
         await store.retrieve("query", "t1", "global", top_k=3)
 
-        assert store._client.search.call_args.kwargs["limit"] == 3
+        assert store._client.query_points.call_args.kwargs["limit"] == 3
 
     async def test_retrieve_returns_empty_list_when_no_results(self):
         store, _ = self.make_store()
-        store._client.search.return_value = []
+        store._client.query_points.return_value = make_query_result([])
 
         results = await store.retrieve("query", "t1", "global")
         assert results == []
 
     async def test_retrieve_applies_scope_filter(self):
         store, _ = self.make_store()
-        store._client.search.return_value = []
+        store._client.query_points.return_value = make_query_result([])
 
         await store.retrieve("query", "acme", "tenant", top_k=5)
 
-        call_filter = store._client.search.call_args.kwargs["query_filter"]
+        call_filter = store._client.query_points.call_args.kwargs["query_filter"]
         assert call_filter is not None
         keys = [c.key for c in call_filter.must]
         assert "tenant_id" in keys
@@ -159,11 +165,11 @@ class TestMemoryStore:
 
     async def test_user_scope_filter_includes_user_id(self):
         store, _ = self.make_store()
-        store._client.search.return_value = []
+        store._client.query_points.return_value = make_query_result([])
 
         await store.retrieve("query", "acme", "user", user_id="user-42", top_k=5)
 
-        call_filter = store._client.search.call_args.kwargs["query_filter"]
+        call_filter = store._client.query_points.call_args.kwargs["query_filter"]
         keys = [c.key for c in call_filter.must]
         assert "user_id" in keys
         user_condition = next(c for c in call_filter.must if c.key == "user_id")
@@ -171,12 +177,12 @@ class TestMemoryStore:
 
     async def test_different_users_get_different_filters(self):
         store, _ = self.make_store()
-        store._client.search.return_value = []
+        store._client.query_points.return_value = make_query_result([])
 
         await store.retrieve("q", "acme", "user", user_id="alice", top_k=5)
         await store.retrieve("q", "acme", "user", user_id="bob", top_k=5)
 
-        calls = store._client.search.await_args_list
+        calls = store._client.query_points.await_args_list
         def get_user_id(call):
             f = call.kwargs["query_filter"]
             return next(c.match.value for c in f.must if c.key == "user_id")

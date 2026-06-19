@@ -16,8 +16,9 @@ class LLMSettings(BaseModel):
 
 
 class LangfuseSettings(BaseModel):
-    public_key: str
-    secret_key: str
+    enabled: bool = False
+    public_key: str = ""
+    secret_key: str = ""
     host: str = "https://cloud.langfuse.com"
 
 
@@ -112,7 +113,7 @@ class EmbeddingSettings(BaseModel):
 
 class MemoryConfig(BaseModel):
     enabled: bool = False
-    scope: Literal["session", "user", "tenant", "global"] = "user"
+    scope: Literal["session", "user", "tenant", "global"] = "tenant"
     top_k: int = 5
     collection_name: str = "agent_memories"
     qdrant_url: str = "http://localhost:6333"

@@ -18,9 +18,8 @@ services:
     ports:
       - "7860:7860"
     environment:
-      # Points at the agent service defined in docker-compose.yml
-      AGENT_URL: http://agent:8000
+      AGENT_URL: ${AGENT_URL:-http://parent:8000}
       AGENT_API_KEY: ${AGENT_API_KEY:-}
-    depends_on:
-      - agent
+      GRADIO_ANALYTICS_ENABLED: "False"
+      PYTHONUNBUFFERED: "1"
     restart: unless-stopped

@@ -1,0 +1,25 @@
+networks:
+  default:
+    name: ai-agent-template_default
+    external: true
+
+services:
+  researcher:
+    build: .
+    env_file: .env.researcher
+    environment:
+      MEMORY__QDRANT_URL: http://qdrant:6333
+    ports:
+      - "8001:8000"
+    command: uv run uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+  parent:
+    build: .
+    env_file: .env.parent
+    environment:
+      MEMORY__QDRANT_URL: http://qdrant:6333
+    ports:
+      - "127.0.0.1:8080:8000"
+    depends_on:
+      - researcher
+    command: uv run uvicorn api.main:app --host 0.0.0.0 --port 8000

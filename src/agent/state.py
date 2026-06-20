@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 class Task(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tool_call_id: str | None = None  # LLM's original tool call id for ToolMessage
     description: str
     status: Literal["pending", "in_progress", "completed", "failed"] = "pending"
     tool_name: str | None = None

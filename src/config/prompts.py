@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 
@@ -18,4 +19,6 @@ class PromptManager:
                 f"at {self._system_path}. "
                 f"Create prompts/{self._version}/system.md to fix this."
             )
-        return self._system_path.read_text(encoding="utf-8").strip()
+        text = self._system_path.read_text(encoding="utf-8").strip()
+        today = date.today().isoformat()
+        return f"Today's date is {today}.\n\n{text}"

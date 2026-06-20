@@ -123,6 +123,60 @@ It is not (yet) suitable as-is for:
 
 ---
 
+## Example Coverage Gap Analysis
+
+The two existing examples (`single-agent-kb-qa.md`, `multi-agent-research.md`) cover the happy path for Phases 1, 3, 5, and 8. Four phases have zero walkthrough coverage.
+
+### What the examples cover
+
+| Feature | KB Q&A | Multi-agent Research |
+|---|---|---|
+| Basic agent run (`/v1/agent/run`) | ✅ | ✅ |
+| Prompt versioning | ✅ | ✅ |
+| Memory / Qdrant | ✅ (knowledge base) | ✅ (session memory) |
+| MCP tools | — | ✅ (Brave Search + fetch) |
+| Sub-agents | — | ✅ |
+| Demo UI (Gradio) | ✅ | ✅ |
+| Langfuse tracing | partial | ✅ |
+| Docker Compose | ✅ | ✅ |
+
+### What's built but has no example
+
+**Phase 2 — Reliability** (completely dark)
+- HITL approval flow — agent pauses mid-run for human approval before tool execution
+- Circuit breaker — what happens when an MCP server starts failing
+- Token budget — what happens when the agent hits `max_tokens_per_run`
+- Context window summarization — long conversation behaviour
+- Checkpoint resume — resuming an interrupted run (explicitly deferred in progress.md)
+
+**Phase 4 — Evals** (completely dark)
+- Running `pytest -m eval` against a golden dataset
+- `scripts/compare_evals.py` for A/B model comparison
+- Langfuse score reporting per run
+
+**Phase 6 — Triggers** (mostly dark)
+- `/v1/agent/stream` SSE streaming — KB Q&A mentions it but has no walkthrough
+- `/v1/triggers/webhook` — no example
+- Scheduled runs (`SCHEDULE__ENABLED`, cron) — mentioned in multi-agent doc but not demonstrated end-to-end
+
+**Phase 7 — Auth & Security** (completely dark)
+- API key authentication (`X-API-Key` header) — neither example enables auth
+- JWT authentication (Bearer token)
+- PII scrubbing — what gets masked, how to configure patterns
+- Tool permission allowlist (`AGENT__ALLOWED_TOOLS`) — only appeared as a debugging fix, never explained
+- Audit log
+
+### Missing examples to write
+
+| Example | Phases covered |
+|---|---|
+| `secure-deployment.md` | Phase 7 — API key + JWT auth, PII scrubber, tool allowlist, audit log |
+| `eval-and-compare.md` | Phase 4 — golden dataset, running evals, A/B scoring in Langfuse |
+| `streaming-and-webhooks.md` | Phase 6 — SSE streaming client, webhook trigger, scheduled digest |
+| `reliability-and-hitl.md` | Phase 2 — HITL flow, circuit breaker demo, token budget, checkpoint resume |
+
+---
+
 ## Recommended Next Design Changes (Priority Order)
 
 1. **Parallel tool execution** in `execute.py` — highest value, low risk, purely additive

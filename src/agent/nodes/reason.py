@@ -29,10 +29,26 @@ async def reason(
     if context_mgr is not None:
         messages = await context_mgr.maybe_summarise(messages)
 
+    effective_tools = tools or None
+    # On the first iteration, force the model to call a tool rather than answer
+    # from training data. For agents that have a search tool, force that specific
+    # tool so the model searches before fetching. For orchestrators (only call_*
+    # tools), any tool is fine so use plain "required".
+    tc: str | dict = "auto"
+    if effective_tools and state.iteration == 0:
+        search_tool = next(
+            (t["function"]["name"] for t in effective_tools
+             if "search" in t.get("function", {}).get("name", "").lower()),
+            None,
+        )
+        if search_tool:
+            tc = {"type": "function", "function": {"name": search_tool}}
+        else:
+            tc = "required"
     response = await llm.complete(
-        messages=[m.__class__(content=m.content) if hasattr(m, "content") else m
-                  for m in messages],
-        tools=tools or None,
+        messages=messages,
+        tools=effective_tools,
+        tool_choice=tc,
     )
 
     # Accumulate token usage and enforce budget
@@ -58,17 +74,20 @@ async def reason(
             new_cost = 0.0
 
     choice = response.choices[0]
-    ai_message = AIMessage(content=choice.message.content or "")
-
     tool_calls = choice.message.tool_calls or []
     new_tasks: list[Task] = []
+    lc_tool_calls = []
     for tc in tool_calls:
         args = json.loads(tc.function.arguments) if isinstance(tc.function.arguments, str) else tc.function.arguments
         new_tasks.append(Task(
             description=f"Call {tc.function.name}",
+            tool_call_id=tc.id,
             tool_name=tc.function.name,
             tool_args=args,
         ))
+        lc_tool_calls.append({"id": tc.id, "name": tc.function.name, "args": args, "type": "tool_call"})
+
+    ai_message = AIMessage(content=choice.message.content or "", tool_calls=lc_tool_calls)
 
     updates: dict[str, Any] = {
         "messages": [ai_message],

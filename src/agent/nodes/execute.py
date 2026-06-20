@@ -52,7 +52,7 @@ async def execute(
 
     tool_message = ToolMessage(
         content=result,
-        tool_call_id=task.id,
+        tool_call_id=task.tool_call_id or task.id,
         name=task.tool_name or "",
     )
 

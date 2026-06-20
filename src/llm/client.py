@@ -1,12 +1,34 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 from unittest.mock import AsyncMock
 
 import litellm
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel
 
 from config.settings import LLMSettings
+
+
+def _to_openai_dict(msg: Any) -> Any:
+    if not isinstance(msg, BaseMessage):
+        return msg
+    if isinstance(msg, SystemMessage):
+        return {"role": "system", "content": msg.content}
+    if isinstance(msg, HumanMessage):
+        return {"role": "user", "content": msg.content}
+    if isinstance(msg, ToolMessage):
+        return {"role": "tool", "content": str(msg.content), "tool_call_id": msg.tool_call_id}
+    if isinstance(msg, AIMessage):
+        d: dict[str, Any] = {"role": "assistant", "content": msg.content or ""}
+        if msg.tool_calls:
+            d["tool_calls"] = [
+                {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
+                for tc in msg.tool_calls
+            ]
+        return d
+    return {"role": "user", "content": str(msg.content)}
 
 litellm.drop_params = True  # ignore unsupported params per provider
 
@@ -42,13 +64,14 @@ class LLMClient:
         messages: list[dict[str, str]],
         tools: list[dict[str, Any]] | None = None,
         response_format: type[BaseModel] | None = None,
+        tool_choice: str | dict = "auto",
     ) -> dict[str, Any]:
         kwargs = self._base_kwargs()
-        kwargs["messages"] = messages
+        kwargs["messages"] = [_to_openai_dict(m) for m in messages]
 
         if tools:
             kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
+            kwargs["tool_choice"] = tool_choice
 
         if response_format:
             kwargs["response_format"] = response_format

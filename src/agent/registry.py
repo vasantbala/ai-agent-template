@@ -18,17 +18,20 @@ class AgentRegistry:
     def tool_schemas(self) -> list[dict]:
         return [
             {
-                "name": f"{_TOOL_PREFIX}{name}",
-                "description": description,
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "task": {
-                            "type": "string",
-                            "description": "The task or question to delegate to this agent.",
-                        }
+                "type": "function",
+                "function": {
+                    "name": f"{_TOOL_PREFIX}{name}",
+                    "description": description,
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "task": {
+                                "type": "string",
+                                "description": "The task or question to delegate to this agent.",
+                            }
+                        },
+                        "required": ["task"],
                     },
-                    "required": ["task"],
                 },
             }
             for name, description in self._descriptions.items()
